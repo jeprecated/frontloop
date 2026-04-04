@@ -1,0 +1,2 @@
+# Frontloop queue state (for skill repo itself — consumers gitignore as needed)
+.frontloop/

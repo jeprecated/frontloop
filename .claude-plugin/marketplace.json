@@ -1,0 +1,23 @@
+{
+  "name": "frontloop",
+  "owner": { "name": "ohare93" },
+  "plugins": [
+    {
+      "name": "frontloop",
+      "source": "./",
+      "description": "File-based task queue for agent loops with slash commands for queue management",
+      "version": "1.0.0",
+      "author": { "name": "ohare93" },
+      "commands": [
+        "./commands/frontloop-init.md",
+        "./commands/frontloop-status.md",
+        "./commands/frontloop-clarify.md",
+        "./commands/frontloop-work.md",
+        "./commands/frontloop-add.md"
+      ],
+      "skills": [
+        "./"
+      ]
+    }
+  ]
+}
