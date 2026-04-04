@@ -7,10 +7,12 @@ description: File-based task queue for agent loops. Defines the .frontloop/ dire
 
 Markdown task files move between directories. The directory is the status. The filename is the id.
 
+**IMPORTANT: New tasks ALWAYS go in `clarify/`. Never create tasks directly in `ready/`, `in_progress/`, or `done/`.** Only the `/clarify` command promotes tasks from `clarify/` to `ready/` after human review.
+
 ```
 .frontloop/
-├── clarify/      # New tasks start here. Need human review before work begins.
-├── ready/        # Reviewed and ready. Prefixed by priority: 1-foo.md (critical) .. 4-foo.md (low).
+├── clarify/      # ALL new tasks start here. NEVER skip this step.
+├── ready/        # Reviewed and ready. Only /clarify moves tasks here.
 ├── in_progress/  # Task currently being worked on.
 └── done/         # Completed tasks with summaries.
 ```
@@ -21,6 +23,10 @@ Markdown task files move between directories. The directory is the status. The f
 - **ready/**: `{priority}-task-name.md` where priority is `1` (critical), `2` (high), `3` (medium), `4` (low). Alphabetical sort gives highest priority first.
 - **in_progress/**: Same filename as in ready/.
 - **done/**: `task-name.md` (priority prefix removed).
+
+## Creating Tasks
+
+When creating frontloop tasks — whether via `/add`, `/gather`, or manually — **always write them to `.frontloop/clarify/`**. Tasks must be reviewed by a human (`/clarify`) before they can move to `ready/`. There are no exceptions.
 
 ## Task File Format
 
@@ -79,3 +85,4 @@ Optional freeform guidance for the worker.
 | `/clarify` | Review tasks in `clarify/` with a human |
 | `/work` | Pick up and execute the next ready task |
 | `/add` | Create a new task in `clarify/` |
+| `/gather` | Collect feature ideas from user, batch-create tasks in `clarify/` |

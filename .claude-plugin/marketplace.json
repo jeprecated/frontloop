@@ -6,14 +6,15 @@
       "name": "frontloop",
       "source": "./",
       "description": "File-based task queue for agent loops with slash commands for queue management",
-      "version": "1.1.0",
+      "version": "1.0.1",
       "author": { "name": "ohare93" },
       "commands": [
         "./commands/init.md",
         "./commands/status.md",
         "./commands/clarify.md",
         "./commands/work.md",
-        "./commands/add.md"
+        "./commands/add.md",
+        "./commands/gather.md"
       ],
       "skills": [
         "./"
