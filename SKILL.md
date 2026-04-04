@@ -70,11 +70,12 @@ Optional freeform guidance for the worker.
 - **Human review**: See [references/clarify.md](references/clarify.md)
 - **Task execution**: See [references/worker.md](references/worker.md)
 
-## Scripts
+## Commands
 
-Helper scripts live in the skill directory. Prefer these over manual shell commands — they handle formatting and edge cases.
-
-| Script | Purpose |
-|--------|---------|
-| `./scripts/init.sh [path]` | Create `.frontloop/` directories |
-| `./scripts/status.sh [path]` | Show queue state (use this instead of `ls`) |
+| Command | Purpose |
+|---------|---------|
+| `/frontloop-init` | Create `.frontloop/` directories in the current project |
+| `/frontloop-status` | Show queue state |
+| `/frontloop-clarify` | Review tasks in `clarify/` with a human |
+| `/frontloop-work` | Pick up and execute the next ready task |
+| `/frontloop-add` | Create a new task in `clarify/` |
