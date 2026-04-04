@@ -9,11 +9,11 @@
       "version": "1.0.0",
       "author": { "name": "ohare93" },
       "commands": [
-        "./commands/frontloop-init.md",
-        "./commands/frontloop-status.md",
-        "./commands/frontloop-clarify.md",
-        "./commands/frontloop-work.md",
-        "./commands/frontloop-add.md"
+        "./commands/init.md",
+        "./commands/status.md",
+        "./commands/clarify.md",
+        "./commands/work.md",
+        "./commands/add.md"
       ],
       "skills": [
         "./"

@@ -74,8 +74,8 @@ Optional freeform guidance for the worker.
 
 | Command | Purpose |
 |---------|---------|
-| `/frontloop-init` | Create `.frontloop/` directories in the current project |
-| `/frontloop-status` | Show queue state |
-| `/frontloop-clarify` | Review tasks in `clarify/` with a human |
-| `/frontloop-work` | Pick up and execute the next ready task |
-| `/frontloop-add` | Create a new task in `clarify/` |
+| `/init` | Create `.frontloop/` directories in the current project |
+| `/status` | Show queue state |
+| `/clarify` | Review tasks in `clarify/` with a human |
+| `/work` | Pick up and execute the next ready task |
+| `/add` | Create a new task in `clarify/` |
