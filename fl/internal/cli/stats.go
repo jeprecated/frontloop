@@ -22,6 +22,7 @@ var statsCmd = &cobra.Command{
 }
 
 func init() {
+	statsCmd.Flags().Bool("no-color", false, "Disable color output (for piping/scripting)")
 	rootCmd.AddCommand(statsCmd)
 }
 
@@ -38,11 +39,17 @@ func runStatsCmd(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
-	renderStats(cmd.OutOrStdout(), all)
+	noColor, _ := cmd.Flags().GetBool("no-color")
+	renderStats(cmd.OutOrStdout(), all, noColor)
 	return nil
 }
 
-func renderStats(w io.Writer, all map[string][]frontloop.Task) {
+func renderStats(w io.Writer, all map[string][]frontloop.Task, noColor bool) {
+	if noColor {
+		prev := os.Getenv("NO_COLOR")
+		os.Setenv("NO_COLOR", "1") //nolint:errcheck
+		defer os.Setenv("NO_COLOR", prev) //nolint:errcheck
+	}
 	renderer := lipgloss.NewRenderer(w)
 
 	bold := renderer.NewStyle().Bold(true)

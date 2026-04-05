@@ -170,3 +170,46 @@ func TestStatsCmd_ClarifySection(t *testing.T) {
 		t.Errorf("expected task filename in output:\n%s", output)
 	}
 }
+
+func TestStatsCmd_NoColorFlag_Accepted(t *testing.T) {
+	dir := makeCLIFrontloop(t)
+	origDir, _ := os.Getwd()
+	defer os.Chdir(origDir) //nolint:errcheck
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	rootCmd.SetOut(&out)
+	rootCmd.SetErr(&out)
+	rootCmd.SetArgs([]string{"stats", "--no-color"})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("--no-color flag not accepted: %v", err)
+	}
+}
+
+func TestStatsCmd_NoColorFlag_OutputContainsExpectedSections(t *testing.T) {
+	dir := makeCLIFrontloop(t)
+	writeStatsTask(t, dir, "ready", "0001-my-task.md", "My Task", "high")
+	origDir, _ := os.Getwd()
+	defer os.Chdir(origDir) //nolint:errcheck
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	rootCmd.SetOut(&out)
+	rootCmd.SetErr(&out)
+	rootCmd.SetArgs([]string{"stats", "--no-color"})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	output := out.String()
+	if !strings.Contains(output, "READY") {
+		t.Errorf("expected READY section in output:\n%s", output)
+	}
+	if strings.Contains(output, "\x1b[") {
+		t.Errorf("expected no ANSI escape codes with --no-color, got:\n%s", output)
+	}
+}
