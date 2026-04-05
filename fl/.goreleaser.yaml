@@ -13,6 +13,7 @@ builds:
     goos:
       - linux
       - darwin
+      - windows
     goarch:
       - amd64
       - arm64
@@ -23,6 +24,10 @@ archives:
   - id: default
     formats:
       - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
     name_template: >-
       {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
 
@@ -38,3 +43,23 @@ changelog:
       - '^ci:'
       - Merge pull request
       - Merge branch
+
+brews:
+  - repository:
+      owner: ohare93
+      name: tap
+    directory: Formula
+    homepage: https://github.com/ohare93/fl
+    description: CLI for managing frontloop task queues
+    license: MIT
+    test: |
+      system "#{bin}/fl", "--version"
+
+scoops:
+  - repository:
+      owner: ohare93
+      name: scoop
+    directory: bucket
+    homepage: https://github.com/ohare93/fl
+    description: CLI for managing frontloop task queues
+    license: MIT

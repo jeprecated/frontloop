@@ -4,6 +4,16 @@ Command-line tool for managing a [frontloop](https://github.com/ohare93/frontloo
 
 ## Commands
 
+### `fl init`
+
+Create a `.frontloop/` directory tree in the current directory.
+
+```bash
+fl init
+```
+
+Safe to run multiple times — existing directories are left untouched.
+
 ### `fl idea`
 
 Quickly capture a task idea into the clarify queue.
@@ -63,7 +73,7 @@ fl completion fish > ~/.config/fish/completions/fl.fish
 
 ## Installation
 
-### From source (requires Go 1.21+)
+### From source (requires Go 1.24+)
 
 ```bash
 go install github.com/ohare93/fl/cmd/fl@latest
