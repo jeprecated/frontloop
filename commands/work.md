@@ -20,7 +20,7 @@ Read the full workflow from `references/worker.md` in the frontloop skill direct
 
 ### 1. Pick the task
 
-List `.md` files in `ready/` sorted alphabetically. The first file is the highest priority (filenames are prefixed `1-`, `2-`, `3-`, `4-`).
+List `.md` files in `ready/` sorted alphabetically. The first file is the highest priority (filenames are prefixed with a 4-digit number, e.g. `0100-`, `2500-`; lowest number = highest priority).
 
 Read the file. Present the title, goal, acceptance criteria, and any design decisions to the user.
 

@@ -13,7 +13,7 @@ New tasks arrive in `.frontloop/clarify/`. This workflow reviews them with a hum
    - Write the chosen answers into the **Design Decisions** section as concise statements.
    - **Remove the entire Questions section** and all unchosen options. Keep only the decisions. This minimizes token cost for the worker.
    - Add any implementation guidance the human provides to **Implementation Notes**.
-4. If the task is clear enough to execute, move it to `.frontloop/ready/` with a priority prefix: `1-` (critical), `2-` (high), `3-` (medium), `4-` (low). Read the task's `priority` frontmatter to determine the prefix.
+4. If the task is clear enough to execute, move it to `.frontloop/ready/` with a 4-digit numeric prefix. Pick a number based on the task's priority and relation to other tasks. Suggested ranges: critical=0001-2499, high=2500-4999, medium=5000-7499, low=7500-9999. Duplicate numbers are allowed. The filename becomes `NNNN-<original-filename>`.
 5. If the human says the task needs more work or isn't ready, leave it in `clarify/`.
 
 ## Tasks Without Questions

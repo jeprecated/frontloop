@@ -42,7 +42,7 @@ If the task has no Questions section:
 
 Ask the user if this task is ready to work on.
 
-- **If yes**: Move to `.frontloop/ready/` with priority prefix. Read the `priority` frontmatter to determine the prefix: `1-` (critical), `2-` (high), `3-` (medium), `4-` (low). The filename becomes `<prefix><original-filename>`.
+- **If yes**: Move to `.frontloop/ready/` with a 4-digit numeric prefix. Pick a number based on priority and relation to other tasks. Suggested ranges: critical=0001-2499, high=2500-4999, medium=5000-7499, low=7500-9999. Duplicate numbers are allowed. The filename becomes `NNNN-<original-filename>`.
 - **If no**: Leave in `clarify/`. Ask what's missing and add it to the file.
 
 ## Output

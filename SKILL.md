@@ -20,9 +20,9 @@ Markdown task files move between directories. The directory is the status. The f
 ### Filename Conventions
 
 - **clarify/**: `task-name.md`
-- **ready/**: `{priority}-task-name.md` where priority is `1` (critical), `2` (high), `3` (medium), `4` (low). Alphabetical sort gives highest priority first.
+- **ready/**: `NNNN-task-name.md` where NNNN is a zero-padded 4-digit number (0001-9999). Alphabetical sort gives correct execution order. Suggested ranges: critical=0001-2499, high=2500-4999, medium=5000-7499, low=7500-9999. Agents can pick any number — ranges are a guide, not enforced. Duplicate numbers are allowed (filenames remain unique).
 - **in_progress/**: Same filename as in ready/.
-- **done/**: `task-name.md` (priority prefix removed).
+- **done/**: `task-name.md` (numeric prefix removed).
 
 ## Creating Tasks
 
