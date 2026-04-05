@@ -49,7 +49,7 @@ brews:
       owner: ohare93
       name: tap
     directory: Formula
-    homepage: https://github.com/ohare93/fl
+    homepage: https://github.com/ohare93/frontloop
     description: CLI for managing frontloop task queues
     license: MIT
     test: |
@@ -60,6 +60,6 @@ scoops:
       owner: ohare93
       name: scoop
     directory: bucket
-    homepage: https://github.com/ohare93/fl
+    homepage: https://github.com/ohare93/frontloop
     description: CLI for managing frontloop task queues
     license: MIT
