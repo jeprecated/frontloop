@@ -14,7 +14,12 @@ File-based task queue for AI agent loops. Tasks are Markdown files with YAML fro
 
 ### Claude Code plugin
 
-Install as a Claude Code plugin to get slash commands for managing tasks inside agent conversations:
+```bash
+claude plugin marketplace add ohare93/frontloop
+claude plugin enable frontloop
+```
+
+Slash commands for managing tasks inside agent conversations:
 
 | Command | Purpose |
 |---------|---------|
@@ -50,6 +55,21 @@ brew install ohare93/tap/fl
 ```powershell
 scoop bucket add ohare93 https://github.com/ohare93/scoop
 scoop install fl
+```
+
+### Nix
+
+```bash
+nix profile install github:ohare93/frontloop
+```
+
+Or add to a flake:
+
+```nix
+{
+  inputs.frontloop.url = "github:ohare93/frontloop";
+  # then use inputs.frontloop.packages.${system}.default
+}
 ```
 
 ### From source
