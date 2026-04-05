@@ -1,4 +1,4 @@
-module github.com/ohare93/fl
+module github.com/ohare93/frontloop/fl
 
 go 1.24.0
 

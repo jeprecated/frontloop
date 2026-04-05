@@ -76,7 +76,7 @@ fl completion fish > ~/.config/fish/completions/fl.fish
 ### From source (requires Go 1.24+)
 
 ```bash
-go install github.com/ohare93/fl/cmd/fl@latest
+go install github.com/ohare93/frontloop/fl/cmd/fl@latest
 ```
 
 ### With devbox (recommended for development)
