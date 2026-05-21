@@ -46,10 +46,10 @@ changelog:
 
 brews:
   - repository:
-      owner: ohare93
+      owner: jeprecated
       name: tap
     directory: Formula
-    homepage: https://github.com/ohare93/frontloop
+    homepage: https://github.com/jeprecated/frontloop
     description: CLI for managing frontloop task queues
     license: MIT
     test: |
@@ -57,9 +57,9 @@ brews:
 
 scoops:
   - repository:
-      owner: ohare93
+      owner: jeprecated
       name: scoop
     directory: bucket
-    homepage: https://github.com/ohare93/frontloop
+    homepage: https://github.com/jeprecated/frontloop
     description: CLI for managing frontloop task queues
     license: MIT

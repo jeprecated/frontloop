@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ohare93/frontloop/fl/internal/frontloop"
+	"github.com/jeprecated/frontloop/fl/internal/frontloop"
 )
 
 func makeFrontloop(t *testing.T, base string) string {

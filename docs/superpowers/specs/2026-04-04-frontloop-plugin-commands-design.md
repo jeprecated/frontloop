@@ -92,14 +92,14 @@ Writes a properly formatted markdown file to `clarify/` with YAML frontmatter an
 ```json
 {
   "name": "frontloop",
-  "owner": { "name": "ohare93" },
+  "owner": { "name": "jeprecated" },
   "plugins": [
     {
       "name": "frontloop",
       "source": "./",
       "description": "File-based task queue for agent loops with slash commands for queue management",
       "version": "1.0.0",
-      "author": { "name": "ohare93" },
+      "author": { "name": "jeprecated" },
       "commands": [
         "./commands/frontloop-init.md",
         "./commands/frontloop-status.md",

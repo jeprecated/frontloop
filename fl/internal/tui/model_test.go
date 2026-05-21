@@ -8,8 +8,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/ohare93/frontloop/fl/internal/frontloop"
-	"github.com/ohare93/frontloop/fl/internal/tui"
+	"github.com/jeprecated/frontloop/fl/internal/frontloop"
+	"github.com/jeprecated/frontloop/fl/internal/tui"
 )
 
 // makeTestQueue creates a temporary .frontloop root with tasks in given dirs.

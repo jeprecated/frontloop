@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ohare93/frontloop/fl/internal/cli"
+	"github.com/jeprecated/frontloop/fl/internal/cli"
 )
 
 // version is set at build time via -ldflags

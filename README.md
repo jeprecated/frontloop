@@ -15,7 +15,7 @@ File-based task queue for AI agent loops. Tasks are Markdown files with YAML fro
 ### Claude Code plugin
 
 ```bash
-claude plugin marketplace add ohare93/frontloop
+claude plugin marketplace add jeprecated/frontloop
 claude plugin enable frontloop
 ```
 
@@ -47,27 +47,27 @@ fl move                          # interactive TUI to move tasks
 ### Homebrew
 
 ```bash
-brew install ohare93/tap/fl
+brew install jeprecated/tap/fl
 ```
 
 ### Scoop (Windows)
 
 ```powershell
-scoop bucket add ohare93 https://github.com/ohare93/scoop
+scoop bucket add jeprecated https://github.com/jeprecated/scoop
 scoop install fl
 ```
 
 ### Nix
 
 ```bash
-nix profile install github:ohare93/frontloop
+nix profile install github:jeprecated/frontloop
 ```
 
 Or add to a flake:
 
 ```nix
 {
-  inputs.frontloop.url = "github:ohare93/frontloop";
+  inputs.frontloop.url = "github:jeprecated/frontloop";
   # then use inputs.frontloop.packages.${system}.default
 }
 ```
@@ -75,7 +75,7 @@ Or add to a flake:
 ### From source
 
 ```bash
-go install github.com/ohare93/frontloop/fl/cmd/fl@latest
+go install github.com/jeprecated/frontloop/fl/cmd/fl@latest
 ```
 
 ## Task format

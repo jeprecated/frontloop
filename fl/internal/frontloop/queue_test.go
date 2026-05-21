@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ohare93/frontloop/fl/internal/frontloop"
+	"github.com/jeprecated/frontloop/fl/internal/frontloop"
 )
 
 // makeQueue creates a full .frontloop directory tree and returns the root path.

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ohare93/frontloop/fl/internal/frontloop"
+	"github.com/jeprecated/frontloop/fl/internal/frontloop"
 )
 
 func TestInitCmd_IsRegistered(t *testing.T) {

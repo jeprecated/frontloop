@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/ohare93/frontloop/fl/internal/frontloop"
+	"github.com/jeprecated/frontloop/fl/internal/frontloop"
 	"github.com/spf13/cobra"
 )
 

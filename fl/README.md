@@ -1,6 +1,6 @@
 # fl
 
-Command-line tool for managing a [frontloop](https://github.com/ohare93/frontloop) task queue. Tasks live as Markdown files in a `.frontloop/` directory tree; `fl` lets you capture ideas, inspect queue state, and move tasks between queues — all from the terminal.
+Command-line tool for managing a [frontloop](https://github.com/jeprecated/frontloop) task queue. Tasks live as Markdown files in a `.frontloop/` directory tree; `fl` lets you capture ideas, inspect queue state, and move tasks between queues — all from the terminal.
 
 ## Commands
 
@@ -76,7 +76,7 @@ fl completion fish > ~/.config/fish/completions/fl.fish
 ### From source (requires Go 1.24+)
 
 ```bash
-go install github.com/ohare93/frontloop/fl/cmd/fl@latest
+go install github.com/jeprecated/frontloop/fl/cmd/fl@latest
 ```
 
 ### With devbox (recommended for development)

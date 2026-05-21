@@ -22,7 +22,7 @@
           ldflags = [ "-s" "-w" "-X main.version=${version}" ];
           meta = {
             description = "File-based task queue for AI agent loops";
-            homepage = "https://github.com/ohare93/frontloop";
+            homepage = "https://github.com/jeprecated/frontloop";
             license = pkgs.lib.licenses.mit;
             mainProgram = "fl";
           };
