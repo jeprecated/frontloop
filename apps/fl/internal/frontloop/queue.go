@@ -222,9 +222,8 @@ func CreateTaskInEpic(root, epic string, task Task) error {
 		return err
 	}
 
-	content := fmt.Sprintf("---\ntitle: %s\npriority: %s\n---\n\n%s\n", task.Title, task.Priority, task.Body)
 	path := filepath.Join(dirPath, task.Filename)
-	return os.WriteFile(path, []byte(content), 0644)
+	return os.WriteFile(path, []byte(formatTaskMarkdown(task)), 0644)
 }
 
 // MoveTask moves a task to destDir. In v2 roots it preserves the task's epic

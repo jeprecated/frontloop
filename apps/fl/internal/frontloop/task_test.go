@@ -3,6 +3,7 @@ package frontloop_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/jeprecated/frontloop/apps/fl/internal/frontloop"
@@ -82,6 +83,41 @@ func TestParseFile_SetsPath(t *testing.T) {
 	}
 	if task.Path != path {
 		t.Errorf("got path %q, want %q", task.Path, path)
+	}
+}
+
+func TestParseFile_AcceptsLegacyUnquotedColonTitle(t *testing.T) {
+	path := writeTempTask(t, "deferred.md", `---
+title: Deferred: add real Twenty CRM sink package
+priority: high
+---
+
+Body.
+`)
+
+	task, err := frontloop.ParseFile(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if task.Title != "Deferred: add real Twenty CRM sink package" {
+		t.Errorf("got title %q", task.Title)
+	}
+}
+
+func TestParseFile_InvalidFrontmatterErrorIncludesPath(t *testing.T) {
+	path := writeTempTask(t, "broken.md", `---
+title: [broken
+---
+
+Body.
+`)
+
+	_, err := frontloop.ParseFile(path)
+	if err == nil {
+		t.Fatal("expected parse error")
+	}
+	if !strings.Contains(err.Error(), path) {
+		t.Errorf("expected error to include path %q, got %v", path, err)
 	}
 }
 

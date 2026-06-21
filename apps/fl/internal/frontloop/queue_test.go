@@ -163,6 +163,37 @@ func TestCreateTask_FileContainsFrontmatter(t *testing.T) {
 	}
 }
 
+func TestCreateTask_QuotesTitleWithColon(t *testing.T) {
+	root := makeQueue(t)
+	task := frontloop.Task{
+		Title:    "Deferred: add real Twenty CRM sink package",
+		Priority: "high",
+		Body:     "Body.",
+		Filename: "colon-title.md",
+	}
+
+	if err := frontloop.CreateTask(root, task); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	path := filepath.Join(root, "clarify", "colon-title.md")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !containsString(string(data), `title: "Deferred: add real Twenty CRM sink package"`) {
+		t.Errorf("expected quoted title frontmatter, got: %q", string(data))
+	}
+
+	parsed, err := frontloop.ParseFile(path)
+	if err != nil {
+		t.Fatalf("created task should parse: %v", err)
+	}
+	if parsed.Title != task.Title {
+		t.Errorf("parsed title = %q, want %q", parsed.Title, task.Title)
+	}
+}
+
 func containsString(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsStringHelper(s, substr))
 }

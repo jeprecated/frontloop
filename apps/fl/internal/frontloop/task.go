@@ -1,6 +1,7 @@
 package frontloop
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -57,6 +58,44 @@ type taskFrontmatter struct {
 	Priority string `yaml:"priority"`
 }
 
+func formatTaskMarkdown(task Task) string {
+	return fmt.Sprintf("---\ntitle: %s\npriority: %s\n---\n\n%s\n", yamlScalar(task.Title), yamlScalar(task.Priority), task.Body)
+}
+
+func yamlScalar(value string) string {
+	if isPlainYAMLScalar(value) {
+		return value
+	}
+
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Sprintf("%q", value)
+	}
+	return string(encoded)
+}
+
+func isPlainYAMLScalar(value string) bool {
+	if value == "" || strings.TrimSpace(value) != value {
+		return false
+	}
+	if strings.ContainsAny(value, "\r\n\t") {
+		return false
+	}
+	if strings.Contains(value, ": ") || strings.Contains(value, " #") {
+		return false
+	}
+
+	switch value {
+	case "null", "Null", "NULL", "~", "true", "True", "TRUE", "false", "False", "FALSE":
+		return false
+	}
+
+	if strings.ContainsAny(value[:1], "-?:!&*#{}[],|>%@`\"'") {
+		return false
+	}
+	return true
+}
+
 // ParseFile reads a task markdown file and returns a Task.
 func ParseFile(path string) (Task, error) {
 	data, err := os.ReadFile(path)
@@ -65,9 +104,9 @@ func ParseFile(path string) (Task, error) {
 	}
 
 	var fm taskFrontmatter
-	rest, err := frontmatter.Parse(strings.NewReader(string(data)), &fm)
+	rest, err := parseTaskFrontmatter(string(data), &fm)
 	if err != nil {
-		return Task{}, err
+		return Task{}, fmt.Errorf("parse task frontmatter in %s: %w", path, err)
 	}
 
 	absPath, err := filepath.Abs(path)
@@ -83,6 +122,80 @@ func ParseFile(path string) (Task, error) {
 		Dir:      filepath.Dir(absPath),
 		Path:     absPath,
 	}, nil
+}
+
+func parseTaskFrontmatter(content string, fm *taskFrontmatter) ([]byte, error) {
+	rest, err := frontmatter.Parse(strings.NewReader(content), fm)
+	if err == nil {
+		return rest, nil
+	}
+
+	legacyFM, legacyRest, ok := parseLegacyUnquotedColonFrontmatter(content)
+	if ok {
+		*fm = legacyFM
+		return legacyRest, nil
+	}
+
+	return nil, err
+}
+
+func parseLegacyUnquotedColonFrontmatter(content string) (taskFrontmatter, []byte, bool) {
+	block, rest, ok := splitFrontmatterBlock(content)
+	if !ok {
+		return taskFrontmatter{}, nil, false
+	}
+
+	var fm taskFrontmatter
+	recoveredUnquotedColon := false
+	for _, line := range strings.Split(block, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		key, value, found := strings.Cut(trimmed, ":")
+		if !found {
+			continue
+		}
+
+		value = strings.TrimSpace(value)
+		switch strings.TrimSpace(key) {
+		case "title":
+			fm.Title = value
+			if hasUnquotedMappingColon(value) {
+				recoveredUnquotedColon = true
+			}
+		case "priority":
+			fm.Priority = value
+		}
+	}
+
+	return fm, []byte(rest), recoveredUnquotedColon && fm.Title != "" && fm.Priority != ""
+}
+
+func splitFrontmatterBlock(content string) (string, string, bool) {
+	normalized := strings.ReplaceAll(content, "\r\n", "\n")
+	lines := strings.SplitAfter(normalized, "\n")
+	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "---" {
+		return "", "", false
+	}
+
+	var block strings.Builder
+	restStart := len(lines[0])
+	for _, line := range lines[1:] {
+		restStart += len(line)
+		if strings.TrimSpace(line) == "---" {
+			return block.String(), normalized[restStart:], true
+		}
+		block.WriteString(line)
+	}
+	return "", "", false
+}
+
+func hasUnquotedMappingColon(value string) bool {
+	if value == "" || strings.HasPrefix(value, "\"") || strings.HasPrefix(value, "'") {
+		return false
+	}
+	return strings.Contains(value, ": ")
 }
 
 // BaseName returns the filename with any numeric ordering prefix stripped.
