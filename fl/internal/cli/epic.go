@@ -30,8 +30,16 @@ var epicListCmd = &cobra.Command{
 	RunE:  runEpicListCmd,
 }
 
+var epicArchiveCmd = &cobra.Command{
+	Use:   "archive <slug>",
+	Short: "Archive a completed epic",
+	Long:  "Archive a completed epic by moving it to .frontloop/_archive/. The epic must have no tasks in clarify, ready, or in_progress.",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runEpicArchiveCmd,
+}
+
 func init() {
-	epicCmd.AddCommand(epicNewCmd, epicListCmd)
+	epicCmd.AddCommand(epicNewCmd, epicListCmd, epicArchiveCmd)
 	rootCmd.AddCommand(epicCmd)
 }
 
@@ -70,6 +78,23 @@ func runEpicListCmd(cmd *cobra.Command, _ []string) error {
 		}
 		fmt.Fprintf(cmd.OutOrStdout(), "  %s\n", epic.Slug)
 	}
+	return nil
+}
+
+func runEpicArchiveCmd(cmd *cobra.Command, args []string) error {
+	root, err := findV2FrontloopRoot()
+	if err != nil {
+		return err
+	}
+
+	archived, err := frontloop.ArchiveEpic(root, args[0])
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(cmd.OutOrStdout(), "Archived epic: %s\n", archived.Slug)
+	fmt.Fprintf(cmd.OutOrStdout(), "Path: %s\n", archived.ArchivePath)
+	fmt.Fprintf(cmd.OutOrStdout(), "Manual restore: move %s back to %s and update epic.md to `status: active` with an empty `completed_at`.\n", archived.ArchivePath, archived.ActivePath)
 	return nil
 }
 

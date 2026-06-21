@@ -14,13 +14,18 @@ func TestEpicCmd_IsRegistered(t *testing.T) {
 		if cmd.Use != "epic" {
 			continue
 		}
+		found := map[string]bool{}
 		for _, subcmd := range cmd.Commands() {
-			if subcmd.Use == "new <slug>" {
-				return
+			found[subcmd.Use] = true
+		}
+		for _, use := range []string{"new <slug>", "list", "archive <slug>"} {
+			if !found[use] {
+				t.Errorf("epic subcommand %q not registered", use)
 			}
 		}
+		return
 	}
-	t.Error("epic new command not registered with root command")
+	t.Error("epic command not registered with root command")
 }
 
 func TestEpicNewCmd_CreatesActiveEpic(t *testing.T) {
@@ -169,6 +174,99 @@ func TestEpicListCmd_ErrorWhenLegacyLayoutNeedsMigration(t *testing.T) {
 	if !strings.Contains(err.Error(), "fl migrate epic-layout") {
 		t.Errorf("expected migration hint, got: %v", err)
 	}
+}
+
+func TestEpicArchiveCmd_ArchivesCompletedEpicAndPrintsRestoreGuidance(t *testing.T) {
+	dir := makeCLIV2Frontloop(t)
+	root := filepath.Join(dir, ".frontloop")
+	if err := frontloop.EnsureEpic(root, "checkout-redesign"); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(root, "checkout-redesign", frontloop.StatusDone, "0100-archived-task.md"), []byte("---\ntitle: Archived Task\npriority: high\n---\n\nDone.\n"))
+
+	output, err := runCLIInDir(t, dir, "epic", "archive", "checkout-redesign")
+	if err != nil {
+		t.Fatalf("unexpected archive error: %v", err)
+	}
+
+	archivePath := singleArchivePath(t, root)
+	activePath := filepath.Join(root, "checkout-redesign")
+	for _, want := range []string{"Archived epic: checkout-redesign", "Manual restore:", archivePath, activePath, "status: active", "completed_at"} {
+		if !strings.Contains(output, want) {
+			t.Errorf("archive output missing %q: %q", want, output)
+		}
+	}
+	if _, err := os.Stat(activePath); !os.IsNotExist(err) {
+		t.Fatalf("active epic should be moved away, stat err = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(archivePath, frontloop.StatusDone, "0100-archived-task.md")); err != nil {
+		t.Fatalf("done task not archived: %v", err)
+	}
+	metadata, err := os.ReadFile(filepath.Join(archivePath, "epic.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"status: archived", "completed_at:"} {
+		if !strings.Contains(string(metadata), want) {
+			t.Errorf("archived metadata missing %q: %q", want, string(metadata))
+		}
+	}
+}
+
+func TestEpicArchiveCmd_ArchivedEpicIgnoredByActiveCommands(t *testing.T) {
+	dir := makeCLIV2Frontloop(t)
+	root := filepath.Join(dir, ".frontloop")
+	if err := frontloop.EnsureEpic(root, "checkout-redesign"); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(root, "checkout-redesign", frontloop.StatusDone, "0100-archived-task.md"), []byte("---\ntitle: Archived Task\npriority: high\n---\n\nDone.\n"))
+
+	if _, err := runCLIInDir(t, dir, "epic", "archive", "checkout-redesign"); err != nil {
+		t.Fatalf("unexpected archive error: %v", err)
+	}
+	archivePath := singleArchivePath(t, root)
+
+	listOutput, err := runCLIInDir(t, dir, "epic", "list")
+	if err != nil {
+		t.Fatalf("unexpected list error: %v", err)
+	}
+	if strings.Contains(listOutput, "checkout-redesign") || strings.Contains(listOutput, frontloop.ArchiveDirName) {
+		t.Errorf("archived epic should not appear in active list: %q", listOutput)
+	}
+
+	statsOutput, err := runStatsCommand(t, dir, "stats", "--no-color")
+	if err != nil {
+		t.Fatalf("unexpected stats error: %v", err)
+	}
+	for _, unexpected := range []string{"checkout-redesign", "Archived Task", "0100-archived-task", frontloop.ArchiveDirName} {
+		if strings.Contains(statsOutput, unexpected) {
+			t.Errorf("archived epic data should not appear in stats, found %q in:\n%s", unexpected, statsOutput)
+		}
+	}
+
+	resetIdeaFlags(t)
+	_, err = runCLIInDir(t, dir, "idea", "--epic", "checkout-redesign", "new active followup")
+	if err == nil {
+		t.Fatal("expected archived epic to be unavailable for new tasks")
+	}
+	if !strings.Contains(err.Error(), "frontloop epic \"checkout-redesign\" does not exist") {
+		t.Errorf("expected archived epic to be treated as missing, got: %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(archivePath, frontloop.StatusClarify, "new-active-followup.md")); !os.IsNotExist(statErr) {
+		t.Errorf("idea should not write into archived epic, stat err = %v", statErr)
+	}
+}
+
+func singleArchivePath(t *testing.T, root string) string {
+	t.Helper()
+	entries, err := os.ReadDir(filepath.Join(root, frontloop.ArchiveDirName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("archive entry count = %d, want 1", len(entries))
+	}
+	return filepath.Join(root, frontloop.ArchiveDirName, entries[0].Name())
 }
 
 func makeCLIV2Frontloop(t *testing.T) string {
