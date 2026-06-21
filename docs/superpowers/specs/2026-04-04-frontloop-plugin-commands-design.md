@@ -1,5 +1,7 @@
 # Frontloop Plugin Commands
 
+> **Historical note:** This dated design describes the pre-v2 legacy flat queue layout. Current frontloop behavior uses the epic-first layout documented in `../../frontloop-v2-epic-layout.md`.
+
 Turn the frontloop repo from a standalone skill with shell scripts into a plugin marketplace with registered slash commands.
 
 ## Problem

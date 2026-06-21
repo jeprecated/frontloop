@@ -1,9 +1,9 @@
 # Frontloop v2 epic layout specification
 
-Status: proposed implementation contract  
+Status: implemented v2 layout contract  
 Date: 2026-06-21
 
-This document specifies the v2 frontloop filesystem layout. It is the contract for moving from a single flat queue to epic-scoped queues while preserving the core frontloop rule that directory movement represents task status.
+This document specifies the implemented v2 frontloop filesystem layout. It is the contract for moving from a single flat queue to epic-scoped queues while preserving the core frontloop rule that directory movement represents task status.
 
 ## Goals
 
@@ -87,6 +87,7 @@ Example:
 ```markdown
 ---
 title: Checkout redesign
+slug: checkout-redesign
 status: active
 created_at: 2026-06-21
 completed_at:
@@ -210,13 +211,13 @@ Migration requirements:
 - Do not delete or hide legacy data unless all moves needed for that status completed successfully.
 - Commands that detect a legacy flat layout should guide users to run the migration instead of treating the queue as a valid v2 root.
 
-## Compatibility notes and known inconsistencies
+## Compatibility notes
 
-The current repository documentation and Go implementation do not fully agree about ready-queue filename prefixes:
+V2 standardizes on numeric/order prefixes in `ready/`, `in_progress/`, and `done/`, with examples using four digits. The default priority prefixes are:
 
-- Existing docs describe ready tasks as `NNNN-task-name.md` with a four-digit ordering prefix.
-- Current Go code maps priorities to short prefixes such as `1-`, `2-`, `3-`, and `4-`.
+- critical: `0001-`
+- high: `2500-`
+- medium: `5000-`
+- low: `7500-`
 
-V2 resolves this specification-level conflict by standardizing on numeric/order prefixes in `ready/`, `in_progress/`, and `done/`, with examples using four digits. Follow-up implementation tasks should update code and user-facing documentation to match this spec.
-
-Until the v2 implementation and documentation updates land, older docs may still describe the flat `.frontloop/{clarify,ready,in_progress,done}` layout. Treat this document as the v2 implementation contract.
+Legacy flat queues may still exist in older repositories or historical docs. Migrate active legacy queues with `fl migrate epic-layout`; after migration, treat this document as the active layout contract.

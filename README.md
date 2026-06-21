@@ -1,14 +1,33 @@
 # frontloop
 
-File-based task queue for AI agent loops. Tasks are Markdown files with YAML frontmatter that move between directories: `clarify` → `ready` → `in_progress` → `done`. The directory is the status. The filename is the id.
+File-based task queue for AI agent loops. Tasks are Markdown files with YAML frontmatter that move through status directories inside an epic: `clarify` → `ready` → `in_progress` → `done`.
 
-```
+The active v2 layout is epic-first:
+
+```text
 .frontloop/
-├── clarify/      # new ideas waiting for human review
-├── ready/        # reviewed and prioritised (NNNN-task-name.md)
-├── in_progress/  # currently being worked on
-└── done/         # completed tasks
+├── default/                 # built-in bucket for unscoped tasks
+│   ├── epic.md
+│   ├── clarify/             # new tasks always start here
+│   ├── ready/               # reviewed and prioritised
+│   ├── in_progress/         # currently being worked on
+│   └── done/                # completed tasks
+├── checkout-redesign/       # another active epic
+│   ├── epic.md
+│   ├── clarify/
+│   ├── ready/
+│   ├── in_progress/
+│   └── done/
+└── _archive/                # archived completed epics, ignored by active commands
 ```
+
+Active task paths use:
+
+```text
+.frontloop/<epic>/<status>/<task>.md
+```
+
+`default/` is the epic used when no explicit epic is provided. `_archive/` stores completed epics and is ignored by normal active-queue commands.
 
 ## Two ways to use frontloop
 
@@ -23,23 +42,27 @@ Slash commands for managing tasks inside agent conversations:
 
 | Command | Purpose |
 |---------|---------|
-| `/init` | Create `.frontloop/` directories in the current project |
-| `/status` | Show queue state |
-| `/clarify` | Review tasks in `clarify/` with a human |
-| `/work` | Pick up and execute the next ready task |
-| `/add` | Create a new task in `clarify/` |
-| `/gather` | Collect feature ideas from user, batch-create tasks |
+| `/init` | Create the v2 `.frontloop/` tree with `default/` and `_archive/` |
+| `/status` | Show active queue state grouped by epic |
+| `/clarify` | Review tasks in an epic's `clarify/` queue with a human |
+| `/work` | Pick up and execute the next ready task, optionally within one epic |
+| `/add` | Create a new task in `.frontloop/<epic>/clarify/` |
+| `/gather` | Collect feature ideas and batch-create clarify tasks |
 
 ### `fl` CLI
 
 A standalone Go binary for managing queues from the terminal. See [`fl/README.md`](fl/README.md) for full command reference.
 
 ```bash
-fl init                          # create .frontloop/ tree
-fl idea "add retry logic"        # capture an idea
-fl idea -p high "fix login bug"  # with priority
-fl stats                         # view queue state
-fl move                          # interactive TUI to move tasks
+fl init                                      # create v2 .frontloop/ tree
+fl migrate epic-layout                      # migrate old flat queues into default/
+fl epic new checkout-redesign               # create an active epic
+fl idea --epic checkout-redesign "render review page"
+fl idea "small unscoped task"               # goes to default/clarify/
+fl stats                                    # grouped by active epic
+fl stats --epic checkout-redesign           # one epic only
+fl epic archive checkout-redesign           # archive a completed epic
+fl move                                     # interactive TUI to move tasks
 ```
 
 ## Install
@@ -97,16 +120,50 @@ Reject trades when inputs are stale.
 - Commands fail with machine-readable stale-data error
 ```
 
-Frontmatter fields: `title` (required), `priority` (required — `critical`, `high`, `medium`, `low`).
+Frontmatter fields: `title` (required), `priority` (required — `critical`, `high`, `medium`, `low`). Epic membership comes from the path, not task frontmatter.
 
 Body sections: **Goal** (required), **Acceptance Criteria** (required), **Design Decisions** (optional), **Implementation Notes** (optional).
 
 ### Filename conventions
 
+Within each epic:
+
 - **clarify/**: `task-name.md`
-- **ready/**: `NNNN-task-name.md` (4-digit priority prefix, e.g. `0001-critical-fix.md`)
+- **ready/**: `NNNN-task-name.md` where `NNNN` is a zero-padded ordering prefix
 - **in_progress/**: keeps the `NNNN-` prefix from ready
-- **done/**: `task-name.md` (prefix removed)
+- **done/**: preserves the `NNNN-` prefix so completed/archived epics remain readable in execution order
+
+Suggested prefix ranges: critical `0001-2499`, high `2500-4999`, medium `5000-7499`, low `7500-9999`.
+
+## Epic lifecycle
+
+Create active epics with `fl epic new <slug>`. When an epic is complete, archive it with `fl epic archive <slug>`. Archiving is allowed only when that epic has no tasks in `clarify/`, `ready/`, or `in_progress/`; completed tasks may remain in `done/`.
+
+Archived epics move to:
+
+```text
+.frontloop/_archive/YYYY-MM-DD-<epic>/
+```
+
+Normal status, idea, move, and work flows ignore `_archive/`.
+
+## Migrating old queues
+
+The legacy flat layout was:
+
+```text
+.frontloop/{clarify,ready,in_progress,done}/
+```
+
+Run:
+
+```bash
+fl migrate epic-layout
+```
+
+This moves legacy tasks into `.frontloop/default/<status>/`, preserves filenames and contents, creates `default/epic.md`, and creates `_archive/`.
+
+For the full v2 filesystem contract, see [`docs/frontloop-v2-epic-layout.md`](docs/frontloop-v2-epic-layout.md).
 
 ## License
 

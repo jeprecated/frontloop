@@ -1,31 +1,39 @@
 ---
-description: Gather feature ideas from the user and add them to the clarify queue
-argument-hint: [optional topic or area to brainstorm about]
+description: Gather feature ideas from the user and add them to an epic's clarify queue
+argument-hint: [optional epic or brainstorming topic]
 ---
 
 # Frontloop Gather
 
-Interactively collect feature ideas from the user and create task files in `.frontloop/clarify/` for each one.
+Interactively collect feature ideas from the user and create task files in `.frontloop/<epic>/clarify/` for each one. If no epic is specified, use `default`.
 
 ## Precondition
 
-Check that `.frontloop/` exists. If not, tell the user to run `/frontloop-init`.
+Check that `.frontloop/default/` exists. If not, tell the user to run `/frontloop-init`.
+
+If the repository still uses the legacy flat layout, tell the user to run `fl migrate epic-layout` before gathering tasks.
+
+Ignore `.frontloop/_archive/`; archived epics are not active task destinations.
 
 ## Arguments
 
 `{{arg}}`
 
-If arguments are provided, use them to frame the gathering session (e.g., a specific area of the product to brainstorm about).
+If arguments name an active epic, use it as the target epic. Otherwise use arguments to frame the gathering session, and default task creation to the `default` epic unless the user chooses another active epic.
+
+Do not silently create a new epic from a typo. Ask before using a non-existent epic, and recommend `fl epic new <slug>` if a new epic is needed.
 
 ## Execution
 
 ### 1. Start the session
 
-Tell the user you're ready to collect feature ideas. If arguments were provided, acknowledge the focus area.
+Tell the user you're ready to collect feature ideas. If arguments were provided, acknowledge the focus area and target epic.
 
 Explain:
+
 - They can describe ideas in any level of detail — a single sentence is fine
 - You'll create a task for each one with your own questions and unknowns filled in
+- New tasks will be written to `.frontloop/<epic>/clarify/`
 - Say "done" or "that's all" when finished
 
 ### 2. Collect ideas
@@ -33,13 +41,14 @@ Explain:
 Wait for the user to describe a feature idea. For each idea:
 
 - Acknowledge it briefly (one line)
+- Note the target epic if it differs from the default for the session
 - Ask if they have another idea
 
 Keep collecting until the user signals they're done.
 
 ### 3. Create tasks
 
-For each idea collected, create a task file in `.frontloop/clarify/`. Derive the filename from your chosen title using kebab-case.
+For each idea collected, create a task file in `.frontloop/<epic>/clarify/`. Derive the filename from your chosen title using kebab-case. Ensure uniqueness within that epic's `clarify/` directory.
 
 For each task, **you** fill in:
 
@@ -57,7 +66,7 @@ For each task, **you** fill in:
 - **Recommendation**: <your pick and why>
 ```
 
-Write to `.frontloop/clarify/<filename>.md`:
+Write to `.frontloop/<epic>/clarify/<filename>.md`:
 
 ```markdown
 ---
@@ -87,6 +96,8 @@ priority: <priority>
 
 Do **not** ask the user these questions during gather. The questions are for the `/frontloop-clarify` step.
 
+Epic membership is represented by the path; do not add an `epic:` field to task frontmatter.
+
 ## Output
 
-After creating all tasks, show a summary of what was created (title + priority for each). Run `/frontloop-status` to show the updated queue.
+After creating all tasks, show a summary of what was created, including epic, title, and priority for each task. Run `/frontloop-status` to show the updated queue grouped by epic.

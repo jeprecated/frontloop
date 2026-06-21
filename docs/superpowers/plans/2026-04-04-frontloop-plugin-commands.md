@@ -1,5 +1,7 @@
 # Frontloop Plugin Commands Implementation Plan
 
+> **Historical note:** This dated plan describes the pre-v2 legacy flat queue layout. Current frontloop behavior uses the epic-first layout documented in `../../frontloop-v2-epic-layout.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Turn the frontloop repo into a plugin marketplace with 5 slash commands replacing the shell scripts.
