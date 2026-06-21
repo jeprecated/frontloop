@@ -198,10 +198,28 @@ func ListAll(root string) (map[string][]Task, error) {
 	return result, nil
 }
 
-// CreateTask writes a task file to the clarify/ directory.
+// CreateTask writes a task file to task.Epic's clarify/ directory, defaulting
+// to the default epic. Legacy flat roots map the default epic to the top-level
+// clarify/ directory.
 func CreateTask(root string, task Task) error {
+	return CreateTaskInEpic(root, task.Epic, task)
+}
+
+// CreateTaskInEpic writes a task file to an epic's clarify/ directory.
+// It validates that v2 epics already exist so typos do not silently create new
+// task buckets.
+func CreateTaskInEpic(root, epic string, task Task) error {
+	if epic == "" {
+		epic = DefaultEpicSlug
+	}
+
+	dirPath, err := clarifyDirForEpic(root, epic)
+	if err != nil {
+		return err
+	}
+
 	content := fmt.Sprintf("---\ntitle: %s\npriority: %s\n---\n\n%s\n", task.Title, task.Priority, task.Body)
-	path := filepath.Join(root, StatusClarify, task.Filename)
+	path := filepath.Join(dirPath, task.Filename)
 	return os.WriteFile(path, []byte(content), 0644)
 }
 
@@ -263,4 +281,23 @@ func epicStatusDir(root, epic, status string) (string, error) {
 		return "", fmt.Errorf("epic %q is unavailable in legacy frontloop layout", epic)
 	}
 	return filepath.Join(root, status), nil
+}
+
+func clarifyDirForEpic(root, epic string) (string, error) {
+	if IsV2Root(root) {
+		if err := ValidateEpicSlug(epic); err != nil {
+			return "", err
+		}
+
+		epicPath := filepath.Join(root, epic)
+		if !hasStatusDirs(epicPath) {
+			return "", fmt.Errorf("frontloop epic %q does not exist (run `fl epic new %s` to create it)", epic, epic)
+		}
+		return filepath.Join(epicPath, StatusClarify), nil
+	}
+
+	if epic != DefaultEpicSlug {
+		return "", fmt.Errorf("epic %q is unavailable in legacy frontloop layout", epic)
+	}
+	return filepath.Join(root, StatusClarify), nil
 }

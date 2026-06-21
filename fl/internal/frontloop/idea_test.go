@@ -188,3 +188,100 @@ func TestCreateIdeaTask_DeduplicatesFilename(t *testing.T) {
 		t.Errorf("second filename = %q, want %q", name, want)
 	}
 }
+
+func TestCreateIdeaTask_V2DefaultsToDefaultEpicClarify(t *testing.T) {
+	dir := t.TempDir()
+	root := makeEpicFrontloop(t, dir, frontloop.DefaultEpicSlug)
+
+	path, err := frontloop.CreateIdeaTask(root, "add retry logic", "medium")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	want := filepath.Join(root, frontloop.DefaultEpicSlug, frontloop.StatusClarify, "add-retry-logic.md")
+	if path != want {
+		t.Errorf("path = %q, want %q", path, want)
+	}
+	if _, err := os.Stat(want); err != nil {
+		t.Errorf("file not created at %q: %v", want, err)
+	}
+}
+
+func TestCreateIdeaTaskInEpic_WritesSelectedEpicClarify(t *testing.T) {
+	dir := t.TempDir()
+	root := makeEpicFrontloop(t, dir, frontloop.DefaultEpicSlug, "checkout-redesign")
+
+	path, err := frontloop.CreateIdeaTaskInEpic(root, "checkout-redesign", "render review page", "high")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	want := filepath.Join(root, "checkout-redesign", frontloop.StatusClarify, "render-review-page.md")
+	if path != want {
+		t.Errorf("path = %q, want %q", path, want)
+	}
+	if _, err := os.Stat(want); err != nil {
+		t.Errorf("file not created at %q: %v", want, err)
+	}
+}
+
+func TestCreateIdeaTaskInEpic_RejectsMissingEpic(t *testing.T) {
+	dir := t.TempDir()
+	root := makeEpicFrontloop(t, dir, frontloop.DefaultEpicSlug)
+
+	_, err := frontloop.CreateIdeaTaskInEpic(root, "checkout-redesign", "render review page", "high")
+	if err == nil {
+		t.Fatal("expected missing epic error")
+	}
+	if !containsString(err.Error(), "frontloop epic \"checkout-redesign\" does not exist") {
+		t.Errorf("expected helpful missing epic error, got: %v", err)
+	}
+
+	unexpected := filepath.Join(root, "checkout-redesign", frontloop.StatusClarify, "render-review-page.md")
+	if _, err := os.Stat(unexpected); !os.IsNotExist(err) {
+		t.Errorf("missing epic should not be auto-created, stat err = %v", err)
+	}
+}
+
+func TestIdeaFilenameUniqueInEpic_DeduplicatesWithinSelectedEpicOnly(t *testing.T) {
+	dir := t.TempDir()
+	root := makeEpicFrontloop(t, dir, frontloop.DefaultEpicSlug, "checkout-redesign")
+	writeTask(t, root, filepath.Join(frontloop.DefaultEpicSlug, frontloop.StatusClarify), "add-retry-logic.md", taskA)
+	writeTask(t, root, filepath.Join("checkout-redesign", frontloop.StatusClarify), "add-retry-logic.md", taskA)
+	writeTask(t, root, filepath.Join("checkout-redesign", frontloop.StatusClarify), "add-retry-logic-2.md", taskA)
+
+	defaultName, err := frontloop.IdeaFilenameUniqueInEpic(root, frontloop.DefaultEpicSlug, "add retry logic")
+	if err != nil {
+		t.Fatalf("unexpected default epic error: %v", err)
+	}
+	if defaultName != "add-retry-logic-2.md" {
+		t.Errorf("default epic filename = %q, want add-retry-logic-2.md", defaultName)
+	}
+
+	checkoutName, err := frontloop.IdeaFilenameUniqueInEpic(root, "checkout-redesign", "add retry logic")
+	if err != nil {
+		t.Fatalf("unexpected checkout epic error: %v", err)
+	}
+	if checkoutName != "add-retry-logic-3.md" {
+		t.Errorf("checkout epic filename = %q, want add-retry-logic-3.md", checkoutName)
+	}
+}
+
+func TestCreateIdeaTaskInEpic_DoesNotWriteEpicFrontmatter(t *testing.T) {
+	dir := t.TempDir()
+	root := makeEpicFrontloop(t, dir, frontloop.DefaultEpicSlug, "checkout-redesign")
+
+	path, err := frontloop.CreateIdeaTaskInEpic(root, "checkout-redesign", "render review page", "high")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	if containsString(content, "epic:") {
+		t.Errorf("task frontmatter should not include epic membership: %q", content)
+	}
+}
