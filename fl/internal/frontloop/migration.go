@@ -87,7 +87,7 @@ func DefaultEpicMetadata(slug string, createdAt time.Time) string {
 		title = "Default"
 	}
 
-	return fmt.Sprintf("---\ntitle: %s\nstatus: active\ncreated_at: %s\ncompleted_at:\n---\n\n## Goal\n\n", title, createdAt.Format("2006-01-02"))
+	return fmt.Sprintf("---\ntitle: %s\nslug: %s\nstatus: active\ncreated_at: %s\ncompleted_at:\n---\n\n## Goal\n\n", title, slug, createdAt.Format("2006-01-02"))
 }
 
 // HasLegacyTasks reports whether root contains task markdown files in the
