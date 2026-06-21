@@ -213,6 +213,9 @@ func CreateTaskInEpic(root, epic string, task Task) error {
 	if epic == "" {
 		epic = DefaultEpicSlug
 	}
+	if err := ValidatePriority(task.Priority); err != nil {
+		return err
+	}
 
 	dirPath, err := clarifyDirForEpic(root, epic)
 	if err != nil {

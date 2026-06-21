@@ -9,7 +9,7 @@ Create a new task file in `.frontloop/<epic>/clarify/`. If no epic is specified,
 
 ## Precondition
 
-Check that `.frontloop/default/` exists. If not, tell the user to run `/frontloop-init`.
+Check that `.frontloop/default/` exists. If not, tell the user to run `/init`.
 
 If the repository still uses the legacy flat layout, tell the user to run `fl migrate epic-layout` before adding tasks.
 
@@ -74,4 +74,4 @@ Epic membership is represented by the path; do not add an `epic:` field to task 
 
 ## Output
 
-Confirm the file was created and show its path. Run `/frontloop-status` to show the updated queue grouped by epic.
+Confirm the file was created and show its path. Run `/status` to show the updated queue grouped by epic.

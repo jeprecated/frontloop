@@ -1,6 +1,7 @@
 package frontloop
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,6 +29,15 @@ var PrefixPriority = map[string]string{
 	"2-":    "high",
 	"3-":    "medium",
 	"4-":    "low",
+}
+
+// ValidatePriority reports whether priority is one of the supported task
+// priorities.
+func ValidatePriority(priority string) error {
+	if _, ok := PriorityPrefix[priority]; ok {
+		return nil
+	}
+	return fmt.Errorf("invalid frontloop priority %q (use critical, high, medium, or low)", priority)
 }
 
 // Task represents a frontloop task file.

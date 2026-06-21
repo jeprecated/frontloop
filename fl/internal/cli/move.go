@@ -1,9 +1,6 @@
 package cli
 
 import (
-	"fmt"
-	"os"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
@@ -22,13 +19,9 @@ func init() {
 }
 
 func runMoveCmd(_ *cobra.Command, _ []string) error {
-	cwd, err := os.Getwd()
+	root, err := findV2FrontloopRoot()
 	if err != nil {
 		return err
-	}
-	root, err := frontloop.FindRoot(cwd)
-	if err != nil {
-		return fmt.Errorf("no .frontloop directory found (run fl init to create one)")
 	}
 	all, err := frontloop.ListAll(root)
 	if err != nil {

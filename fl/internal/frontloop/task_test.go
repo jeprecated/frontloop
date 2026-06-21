@@ -153,3 +153,15 @@ func TestPrefixPriority_Maps(t *testing.T) {
 		}
 	}
 }
+
+func TestValidatePriority(t *testing.T) {
+	for _, priority := range []string{"critical", "high", "medium", "low"} {
+		if err := frontloop.ValidatePriority(priority); err != nil {
+			t.Errorf("ValidatePriority(%q) returned error: %v", priority, err)
+		}
+	}
+
+	if err := frontloop.ValidatePriority("urgent"); err == nil {
+		t.Error("expected invalid priority error")
+	}
+}

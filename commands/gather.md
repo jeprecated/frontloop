@@ -9,7 +9,7 @@ Interactively collect feature ideas from the user and create task files in `.fro
 
 ## Precondition
 
-Check that `.frontloop/default/` exists. If not, tell the user to run `/frontloop-init`.
+Check that `.frontloop/default/` exists. If not, tell the user to run `/init`.
 
 If the repository still uses the legacy flat layout, tell the user to run `fl migrate epic-layout` before gathering tasks.
 
@@ -56,7 +56,7 @@ For each task, **you** fill in:
 - **Goal** — what the feature achieves, based on what the user said (1-3 sentences)
 - **Priority** — your best guess: critical, high, medium, or low
 - **Acceptance Criteria** — concrete checklist items you infer from the idea
-- **Questions** — things you'd need answered before implementation. Format as lettered options with a recommendation, so they're ready for `/frontloop-clarify`:
+- **Questions** — things you'd need answered before implementation. Format as lettered options with a recommendation, so they're ready for `/clarify`:
 
 ```markdown
 ### Q1: <question>
@@ -94,10 +94,10 @@ priority: <priority>
 ### Q2: ...
 ```
 
-Do **not** ask the user these questions during gather. The questions are for the `/frontloop-clarify` step.
+Do **not** ask the user these questions during gather. The questions are for the `/clarify` step.
 
 Epic membership is represented by the path; do not add an `epic:` field to task frontmatter.
 
 ## Output
 
-After creating all tasks, show a summary of what was created, including epic, title, and priority for each task. Run `/frontloop-status` to show the updated queue grouped by epic.
+After creating all tasks, show a summary of what was created, including epic, title, and priority for each task. Run `/status` to show the updated queue grouped by epic.

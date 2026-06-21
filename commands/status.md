@@ -9,7 +9,7 @@ Display the state of active `.frontloop/` task queues grouped by epic.
 
 ## Precondition
 
-Check that `.frontloop/default/` exists. If no `.frontloop/` exists, tell the user to run `/frontloop-init`.
+Check that `.frontloop/default/` exists. If no `.frontloop/` exists, tell the user to run `/init`.
 
 If the repository still has the legacy flat `.frontloop/{clarify,ready,in_progress,done}/` layout, tell the user to run:
 

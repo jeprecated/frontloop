@@ -9,7 +9,7 @@ Run the human review workflow on tasks in `.frontloop/<epic>/clarify/`.
 
 ## Precondition
 
-Check that `.frontloop/default/` exists. If it doesn't, tell the user to run `/frontloop-init`.
+Check that `.frontloop/default/` exists. If it doesn't, tell the user to run `/init`.
 
 If the repository still uses the legacy flat layout, tell the user to run `fl migrate epic-layout` before clarifying tasks.
 
@@ -62,4 +62,4 @@ Never move a task to another epic during clarification unless the user explicitl
 
 ## Output
 
-After processing all tasks, run `/frontloop-status` to show the updated queue grouped by epic.
+After processing all tasks, run `/status` to show the updated queue grouped by epic.

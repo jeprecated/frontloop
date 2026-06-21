@@ -2,6 +2,7 @@ package cli
 
 import (
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -27,5 +28,17 @@ func TestMoveCmd_ErrorWhenNoFrontloopDir(t *testing.T) {
 	err := rootCmd.Execute()
 	if err == nil {
 		t.Error("expected error when .frontloop not found, got nil")
+	}
+}
+
+func TestMoveCmd_ErrorWhenLegacyLayoutNeedsMigration(t *testing.T) {
+	dir := makeCLIFrontloop(t)
+
+	_, err := runCLIInDir(t, dir, "move")
+	if err == nil {
+		t.Fatal("expected legacy-layout error")
+	}
+	if !strings.Contains(err.Error(), "legacy .frontloop layout") || !strings.Contains(err.Error(), "fl migrate epic-layout") {
+		t.Errorf("expected migration hint, got: %v", err)
 	}
 }

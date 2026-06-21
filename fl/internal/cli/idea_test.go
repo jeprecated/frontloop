@@ -131,6 +131,24 @@ func TestIdeaCmd_ShortPriorityFlag(t *testing.T) {
 	}
 }
 
+func TestIdeaCmd_InvalidPriorityRejected(t *testing.T) {
+	resetIdeaFlags(t)
+	dir := makeCLIV2Frontloop(t)
+
+	_, err := runCLIInDir(t, dir, "idea", "--priority", "urgent", "urgent fix needed")
+	if err == nil {
+		t.Fatal("expected invalid priority error")
+	}
+	if !strings.Contains(err.Error(), "critical, high, medium, or low") {
+		t.Errorf("expected priority guidance, got: %v", err)
+	}
+
+	path := filepath.Join(dir, ".frontloop", frontloop.DefaultEpicSlug, frontloop.StatusClarify, "urgent-fix-needed.md")
+	if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
+		t.Errorf("invalid priority should not create task, stat err = %v", statErr)
+	}
+}
+
 func TestIdeaCmd_MultiplePositionalArgsJoined(t *testing.T) {
 	resetIdeaFlags(t)
 	dir := makeCLIV2Frontloop(t)

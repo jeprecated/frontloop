@@ -9,7 +9,7 @@ Pick up a ready task from `.frontloop/<epic>/ready/` and execute it.
 
 ## Precondition
 
-Check that `.frontloop/default/` exists. If it doesn't, tell the user to run `/frontloop-init`.
+Check that `.frontloop/default/` exists. If it doesn't, tell the user to run `/init`.
 
 If the repository still uses the legacy flat layout, tell the user to run `fl migrate epic-layout` before working tasks.
 
@@ -72,4 +72,4 @@ Commit changes with the project's version-control workflow when appropriate.
 
 ### 5. Report
 
-Run `/frontloop-status` to show the updated queue grouped by epic.
+Run `/status` to show the updated queue grouped by epic.
