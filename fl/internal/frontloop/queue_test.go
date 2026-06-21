@@ -247,3 +247,139 @@ func TestMoveTask_ToClarify_StripsPrefix(t *testing.T) {
 		t.Errorf("file not found in clarify as task-b.md: %v", err)
 	}
 }
+
+func TestListEpics_ReturnsActiveEpicsSortedAndIgnoresReserved(t *testing.T) {
+	dir := t.TempDir()
+	root := makeEpicFrontloop(t, dir, "default", "checkout-redesign", "worker-runtime")
+	makeEpicDirs(t, filepath.Join(root, frontloop.ArchiveDirName, "2026-06-21-old-epic"))
+	makeEpicDirs(t, filepath.Join(root, "_scratch"))
+	makeEpicDirs(t, filepath.Join(root, frontloop.StatusReady))
+
+	epics, err := frontloop.ListEpics(root)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got := make([]string, len(epics))
+	for i, epic := range epics {
+		got[i] = epic.Slug
+		if epic.Archived {
+			t.Errorf("active epic %q was marked archived", epic.Slug)
+		}
+	}
+	want := []string{"checkout-redesign", "default", "worker-runtime"}
+	if len(got) != len(want) {
+		t.Fatalf("epics = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("epics = %v, want %v", got, want)
+			break
+		}
+	}
+}
+
+func TestListEpics_LegacyRootReturnsDefaultCompatibilityEpic(t *testing.T) {
+	root := makeQueue(t)
+
+	epics, err := frontloop.ListEpics(root)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(epics) != 1 {
+		t.Fatalf("got %d epics, want 1", len(epics))
+	}
+	if epics[0].Slug != frontloop.DefaultEpicSlug {
+		t.Errorf("epic slug = %q, want %q", epics[0].Slug, frontloop.DefaultEpicSlug)
+	}
+	if epics[0].Path != root {
+		t.Errorf("epic path = %q, want %q", epics[0].Path, root)
+	}
+}
+
+func TestListEpicDir_V2ReturnsSortedTasksWithEpicAndStatus(t *testing.T) {
+	dir := t.TempDir()
+	root := makeEpicFrontloop(t, dir, "default")
+	writeTask(t, root, filepath.Join("default", "ready"), "0200-task-b.md", taskB)
+	writeTask(t, root, filepath.Join("default", "ready"), "0100-task-a.md", taskA)
+
+	tasks, err := frontloop.ListEpicDir(root, frontloop.DefaultEpicSlug, frontloop.StatusReady)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(tasks) != 2 {
+		t.Fatalf("got %d tasks, want 2", len(tasks))
+	}
+	if tasks[0].Filename != "0100-task-a.md" || tasks[1].Filename != "0200-task-b.md" {
+		t.Errorf("task order = [%q, %q], want sorted filenames", tasks[0].Filename, tasks[1].Filename)
+	}
+	for _, task := range tasks {
+		if task.Epic != frontloop.DefaultEpicSlug {
+			t.Errorf("task epic = %q, want %q", task.Epic, frontloop.DefaultEpicSlug)
+		}
+		if task.Status != frontloop.StatusReady {
+			t.Errorf("task status = %q, want %q", task.Status, frontloop.StatusReady)
+		}
+		if task.Dir != filepath.Join(root, "default", "ready") {
+			t.Errorf("task dir = %q, want %q", task.Dir, filepath.Join(root, "default", "ready"))
+		}
+	}
+}
+
+func TestListAllByEpic_GroupsActiveTasksByEpicAndStatus(t *testing.T) {
+	dir := t.TempDir()
+	root := makeEpicFrontloop(t, dir, "default", "checkout-redesign")
+	writeTask(t, root, filepath.Join("default", "clarify"), "task-a.md", taskA)
+	writeTask(t, root, filepath.Join("checkout-redesign", "ready"), "0100-task-b.md", taskB)
+	makeEpicDirs(t, filepath.Join(root, frontloop.ArchiveDirName, "2026-06-21-old-epic"))
+	if err := os.WriteFile(filepath.Join(root, frontloop.ArchiveDirName, "2026-06-21-old-epic", "ready", "0001-archived.md"), []byte(taskC), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	all, err := frontloop.ListAllByEpic(root)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(all) != 2 {
+		t.Fatalf("got %d epics, want 2", len(all))
+	}
+	if len(all["default"]["clarify"]) != 1 {
+		t.Errorf("default clarify: got %d, want 1", len(all["default"]["clarify"]))
+	}
+	if len(all["checkout-redesign"]["ready"]) != 1 {
+		t.Errorf("checkout ready: got %d, want 1", len(all["checkout-redesign"]["ready"]))
+	}
+	if _, ok := all[frontloop.ArchiveDirName]; ok {
+		t.Error("archive directory was returned as an active epic")
+	}
+	if got := all["checkout-redesign"]["ready"][0].Epic; got != "checkout-redesign" {
+		t.Errorf("task epic = %q, want checkout-redesign", got)
+	}
+}
+
+func TestListDir_V2AggregatesStatusAcrossActiveEpics(t *testing.T) {
+	dir := t.TempDir()
+	root := makeEpicFrontloop(t, dir, "default", "checkout-redesign")
+	writeTask(t, root, filepath.Join("default", "ready"), "0200-task-b.md", taskB)
+	writeTask(t, root, filepath.Join("checkout-redesign", "ready"), "0100-task-a.md", taskA)
+
+	tasks, err := frontloop.ListDir(root, frontloop.StatusReady)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(tasks) != 2 {
+		t.Fatalf("got %d tasks, want 2", len(tasks))
+	}
+	if tasks[0].Epic != "checkout-redesign" || tasks[1].Epic != "default" {
+		t.Errorf("task epics = [%q, %q], want active epics in slug order", tasks[0].Epic, tasks[1].Epic)
+	}
+}
+
+func makeEpicDirs(t *testing.T, epicPath string) {
+	t.Helper()
+	for _, status := range frontloop.Statuses {
+		if err := os.MkdirAll(filepath.Join(epicPath, status), 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

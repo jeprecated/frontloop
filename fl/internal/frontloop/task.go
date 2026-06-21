@@ -30,6 +30,8 @@ type Task struct {
 	Priority string
 	Body     string
 	Filename string
+	Epic     string
+	Status   string
 	Dir      string
 	Path     string
 }
