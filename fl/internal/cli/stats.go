@@ -15,6 +15,11 @@ import (
 
 const maxDoneShown = 5
 
+type epicStats struct {
+	Slug  string
+	Tasks map[string][]frontloop.Task
+}
+
 var statsCmd = &cobra.Command{
 	Use:   "stats",
 	Short: "Show frontloop queue status",
@@ -23,31 +28,73 @@ var statsCmd = &cobra.Command{
 
 func init() {
 	statsCmd.Flags().Bool("no-color", false, "Disable color output (for piping/scripting)")
+	statsCmd.Flags().String("epic", "", "Only show tasks for the given active epic slug")
 	rootCmd.AddCommand(statsCmd)
 }
 
 func runStatsCmd(cmd *cobra.Command, _ []string) error {
-	cwd, err := os.Getwd()
+	root, err := findV2FrontloopRoot()
 	if err != nil {
 		return err
 	}
-	root, err := frontloop.FindRoot(cwd)
-	if err != nil {
-		return fmt.Errorf("no .frontloop directory found (run fl init to create one)")
-	}
-	all, err := frontloop.ListAll(root)
+
+	epicFilter, _ := cmd.Flags().GetString("epic")
+	epics, err := loadStatsEpics(root, epicFilter)
 	if err != nil {
 		return err
 	}
+
 	noColor, _ := cmd.Flags().GetBool("no-color")
-	renderStats(cmd.OutOrStdout(), all, noColor)
+	renderStatsByEpic(cmd.OutOrStdout(), epics, noColor)
 	return nil
 }
 
-func renderStats(w io.Writer, all map[string][]frontloop.Task, noColor bool) {
+func loadStatsEpics(root, epicFilter string) ([]epicStats, error) {
+	activeEpics, err := frontloop.ListEpics(root)
+	if err != nil {
+		return nil, err
+	}
+
+	if epicFilter != "" {
+		if err := frontloop.ValidateEpicSlug(epicFilter); err != nil {
+			return nil, err
+		}
+		if !hasActiveEpic(activeEpics, epicFilter) {
+			return nil, fmt.Errorf("frontloop epic %q does not exist (run `fl epic list` to see active epics)", epicFilter)
+		}
+
+		tasks, err := frontloop.ListEpic(root, epicFilter)
+		if err != nil {
+			return nil, err
+		}
+		return []epicStats{{Slug: epicFilter, Tasks: tasks}}, nil
+	}
+
+	allByEpic, err := frontloop.ListAllByEpic(root)
+	if err != nil {
+		return nil, err
+	}
+
+	groups := make([]epicStats, 0, len(activeEpics))
+	for _, epic := range activeEpics {
+		groups = append(groups, epicStats{Slug: epic.Slug, Tasks: allByEpic[epic.Slug]})
+	}
+	return groups, nil
+}
+
+func hasActiveEpic(epics []frontloop.Epic, slug string) bool {
+	for _, epic := range epics {
+		if epic.Slug == slug {
+			return true
+		}
+	}
+	return false
+}
+
+func renderStatsByEpic(w io.Writer, epics []epicStats, noColor bool) {
 	if noColor {
 		prev := os.Getenv("NO_COLOR")
-		os.Setenv("NO_COLOR", "1") //nolint:errcheck
+		os.Setenv("NO_COLOR", "1")        //nolint:errcheck
 		defer os.Setenv("NO_COLOR", prev) //nolint:errcheck
 	}
 	renderer := lipgloss.NewRenderer(w)
@@ -88,10 +135,23 @@ func renderStats(w io.Writer, all map[string][]frontloop.Task, noColor bool) {
 		fmt.Fprintln(w)
 	}
 
-	printSection("IN PROGRESS", bold, all["in_progress"], false)
-	printSection("READY", green, all["ready"], false)
-	printSection("NEEDS CLARIFICATION", yellow, all["clarify"], false)
-	printSection("DONE", dim, sortByModTime(all["done"]), true)
+	for i, epic := range epics {
+		if i > 0 {
+			fmt.Fprintln(w)
+		}
+		fmt.Fprintf(w, "%s\n\n", bold.Render(epicHeader(epic.Slug)))
+		printSection("IN PROGRESS", bold, epic.Tasks[frontloop.StatusInProgress], false)
+		printSection("READY", green, epic.Tasks[frontloop.StatusReady], false)
+		printSection("NEEDS CLARIFICATION", yellow, epic.Tasks[frontloop.StatusClarify], false)
+		printSection("DONE", dim, sortByModTime(epic.Tasks[frontloop.StatusDone]), true)
+	}
+}
+
+func epicHeader(slug string) string {
+	if slug == frontloop.DefaultEpicSlug {
+		return fmt.Sprintf("EPIC: %s (default)", slug)
+	}
+	return "EPIC: " + slug
 }
 
 func sortByModTime(tasks []frontloop.Task) []frontloop.Task {
