@@ -90,10 +90,11 @@ func TestBaseName_StripsPrefix(t *testing.T) {
 		filename string
 		want     string
 	}{
+		{"0001-my-task.md", "my-task.md"},
+		{"2500-my-task.md", "my-task.md"},
+		{"5000-my-task.md", "my-task.md"},
+		{"7500-my-task.md", "my-task.md"},
 		{"1-my-task.md", "my-task.md"},
-		{"2-my-task.md", "my-task.md"},
-		{"3-my-task.md", "my-task.md"},
-		{"4-my-task.md", "my-task.md"},
 		{"my-task.md", "my-task.md"},
 	}
 	for _, tt := range tests {
@@ -110,10 +111,10 @@ func TestPriorityPrefix_Maps(t *testing.T) {
 		priority string
 		prefix   string
 	}{
-		{"critical", "1-"},
-		{"high", "2-"},
-		{"medium", "3-"},
-		{"low", "4-"},
+		{"critical", "0001-"},
+		{"high", "2500-"},
+		{"medium", "5000-"},
+		{"low", "7500-"},
 	}
 	for _, tt := range tests {
 		got, ok := frontloop.PriorityPrefix[tt.priority]
@@ -132,6 +133,10 @@ func TestPrefixPriority_Maps(t *testing.T) {
 		prefix   string
 		priority string
 	}{
+		{"0001-", "critical"},
+		{"2500-", "high"},
+		{"5000-", "medium"},
+		{"7500-", "low"},
 		{"1-", "critical"},
 		{"2-", "high"},
 		{"3-", "medium"},

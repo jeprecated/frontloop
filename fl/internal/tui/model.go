@@ -217,6 +217,18 @@ func (m Model) handleMoveResult(msg moveResultMsg) (Model, tea.Cmd) {
 	return m, nil
 }
 
+func itemLabel(it item) string {
+	epic := it.task.Epic
+	if epic == "" {
+		epic = frontloop.DefaultEpicSlug
+	}
+	filename := it.task.Filename
+	if filename == "" {
+		filename = "(unknown)"
+	}
+	return fmt.Sprintf("[%s] %s/%s — %s", epic, it.dir, filename, it.task.Title)
+}
+
 // View renders the TUI.
 func (m Model) View() string {
 	switch m.state {
@@ -228,10 +240,10 @@ func (m Model) View() string {
 }
 
 var (
-	headerStyle  = lipgloss.NewStyle().Bold(true).Underline(true)
+	headerStyle   = lipgloss.NewStyle().Bold(true).Underline(true)
 	selectedStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("6"))
-	dimStyle     = lipgloss.NewStyle().Faint(true)
-	dirStyle     = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("3"))
+	dimStyle      = lipgloss.NewStyle().Faint(true)
+	dirStyle      = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("3"))
 )
 
 func (m Model) viewList() string {
@@ -249,14 +261,14 @@ func (m Model) viewList() string {
 			sb.WriteString(dirStyle.Render(strings.ToUpper(currentDir)) + "\n")
 		}
 		prefix := "  "
-		title := it.task.Title
+		label := itemLabel(it)
 		if i == m.cursor {
 			prefix = "> "
-			title = selectedStyle.Render(title)
+			label = selectedStyle.Render(label)
 		} else {
-			title = dimStyle.Render(title)
+			label = dimStyle.Render(label)
 		}
-		sb.WriteString(fmt.Sprintf("  %s%s\n", prefix, title))
+		sb.WriteString(fmt.Sprintf("  %s%s\n", prefix, label))
 	}
 
 	sb.WriteString("\n")
@@ -271,7 +283,7 @@ func (m Model) viewList() string {
 func (m Model) viewSelectDest() string {
 	selected := m.items[m.cursor]
 	var sb strings.Builder
-	sb.WriteString(headerStyle.Render("Move: "+selected.task.Title) + "\n\n")
+	sb.WriteString(headerStyle.Render("Move: "+itemLabel(selected)) + "\n\n")
 	sb.WriteString("Choose destination:\n\n")
 
 	for i, d := range m.dests {

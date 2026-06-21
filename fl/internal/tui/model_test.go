@@ -24,6 +24,25 @@ func makeTestQueue(t *testing.T) string {
 	return dir
 }
 
+func makeTestV2Queue(t *testing.T, epics ...string) string {
+	t.Helper()
+	root := t.TempDir()
+	if len(epics) == 0 {
+		epics = []string{frontloop.DefaultEpicSlug}
+	}
+	for _, epic := range epics {
+		for _, status := range frontloop.Statuses {
+			if err := os.MkdirAll(filepath.Join(root, epic, status), 0755); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if err := os.MkdirAll(filepath.Join(root, frontloop.ArchiveDirName), 0755); err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
 func writeTestTask(t *testing.T, root, dir, filename, content string) {
 	t.Helper()
 	path := filepath.Join(root, dir, filename)
@@ -315,5 +334,85 @@ func TestModel_DestCursorJMovesDown(t *testing.T) {
 
 	if m.DestCursor() != 1 {
 		t.Errorf("dest cursor after j = %d, want 1", m.DestCursor())
+	}
+}
+
+func TestModel_ViewShowsEpicStatusAndFilename(t *testing.T) {
+	root := makeTestV2Queue(t, frontloop.DefaultEpicSlug, "checkout-redesign")
+	writeTestTask(t, root, filepath.Join("checkout-redesign", frontloop.StatusReady), "0100-shared.md", taskAlpha)
+	writeTestTask(t, root, filepath.Join(frontloop.DefaultEpicSlug, frontloop.StatusReady), "0100-shared.md", taskBeta)
+
+	all, err := frontloop.ListAll(root)
+	if err != nil {
+		t.Fatalf("unexpected list error: %v", err)
+	}
+	m := tui.New(root, all)
+
+	view := m.View()
+	for _, want := range []string{"[checkout-redesign]", "[default]", "ready/0100-shared.md", "Alpha Task", "Beta Task"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("view should contain %q, got: %q", want, view)
+		}
+	}
+}
+
+func TestModel_SelectDestViewShowsSelectedTaskEpicContext(t *testing.T) {
+	root := makeTestV2Queue(t, frontloop.DefaultEpicSlug, "checkout-redesign")
+	writeTestTask(t, root, filepath.Join("checkout-redesign", frontloop.StatusReady), "0100-shared.md", taskAlpha)
+
+	all, err := frontloop.ListAll(root)
+	if err != nil {
+		t.Fatalf("unexpected list error: %v", err)
+	}
+	m := tui.New(root, all)
+
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = next.(tui.Model)
+
+	view := m.View()
+	for _, want := range []string{"Move:", "[checkout-redesign]", "ready/0100-shared.md", "Alpha Task"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("select view should contain %q, got: %q", want, view)
+		}
+	}
+}
+
+func TestModel_MoveDuplicateFilenameUsesSelectedTaskEpic(t *testing.T) {
+	root := makeTestV2Queue(t, frontloop.DefaultEpicSlug, "checkout-redesign")
+	writeTestTask(t, root, filepath.Join("checkout-redesign", frontloop.StatusReady), "0100-shared.md", taskAlpha)
+	writeTestTask(t, root, filepath.Join(frontloop.DefaultEpicSlug, frontloop.StatusReady), "0100-shared.md", taskBeta)
+
+	all, err := frontloop.ListAll(root)
+	if err != nil {
+		t.Fatalf("unexpected list error: %v", err)
+	}
+	m := tui.New(root, all)
+
+	// ListAll returns active epics in slug order, so move from checkout-redesign
+	// to default before selecting the duplicate default task.
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	m = next.(tui.Model)
+	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = next.(tui.Model)
+	// Destinations for ready are clarify, in_progress, done; choose in_progress.
+	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	m = next.(tui.Model)
+	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = next.(tui.Model)
+	if cmd == nil {
+		t.Fatal("expected move command")
+	}
+
+	next, _ = m.Update(cmd())
+	m = next.(tui.Model)
+
+	if _, err := os.Stat(filepath.Join(root, frontloop.DefaultEpicSlug, frontloop.StatusInProgress, "0100-shared.md")); err != nil {
+		t.Fatalf("expected selected default task to move to in_progress: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "checkout-redesign", frontloop.StatusReady, "0100-shared.md")); err != nil {
+		t.Fatalf("checkout duplicate should remain ready: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, frontloop.DefaultEpicSlug, frontloop.StatusReady, "0100-shared.md")); !os.IsNotExist(err) {
+		t.Fatalf("default ready duplicate should be moved away, stat err = %v", err)
 	}
 }

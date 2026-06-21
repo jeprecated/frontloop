@@ -38,8 +38,9 @@ type Epic struct {
 	Archived bool
 }
 
-// prefixedDirs are the directories that use priority prefixes on filenames.
-var prefixedDirs = map[string]bool{
+// legacyPrefixedDirs are the legacy flat-layout directories that add an
+// ordering prefix when a task is moved into them.
+var legacyPrefixedDirs = map[string]bool{
 	StatusReady:      true,
 	StatusInProgress: true,
 }
@@ -223,23 +224,91 @@ func CreateTaskInEpic(root, epic string, task Task) error {
 	return os.WriteFile(path, []byte(content), 0644)
 }
 
-// MoveTask moves a task to destDir, adding or stripping the priority prefix as required.
-// - ready/ and in_progress/: add priority prefix
-// - clarify/ and done/: strip priority prefix
+// MoveTask moves a task to destDir. In v2 roots it preserves the task's epic
+// membership by moving within .frontloop/<epic>/<status>.
 func MoveTask(root string, task Task, destDir string) error {
-	var destName string
-	if prefixedDirs[destDir] {
-		prefix, ok := PriorityPrefix[task.Priority]
-		if !ok {
-			prefix = "4-" // default to low
-		}
-		destName = prefix + task.BaseName()
-	} else {
-		destName = task.BaseName()
+	if !IsStatus(destDir) {
+		return fmt.Errorf("unknown frontloop status %q", destDir)
 	}
 
+	if IsV2Root(root) {
+		epic, err := epicForTaskMove(root, task)
+		if err != nil {
+			return err
+		}
+		destPath := filepath.Join(root, epic, destDir, v2MoveDestName(task, destDir))
+		return os.Rename(task.Path, destPath)
+	}
+
+	destName := legacyMoveDestName(task, destDir)
 	destPath := filepath.Join(root, destDir, destName)
 	return os.Rename(task.Path, destPath)
+}
+
+func epicForTaskMove(root string, task Task) (string, error) {
+	if task.Epic != "" {
+		if err := ValidateEpicSlug(task.Epic); err != nil {
+			return "", err
+		}
+		return task.Epic, nil
+	}
+
+	if task.Path != "" {
+		absRoot, err := filepath.Abs(root)
+		if err != nil {
+			return "", err
+		}
+		absPath, err := filepath.Abs(task.Path)
+		if err != nil {
+			return "", err
+		}
+		rel, err := filepath.Rel(absRoot, absPath)
+		if err == nil {
+			parts := strings.Split(rel, string(filepath.Separator))
+			if len(parts) >= 3 && IsStatus(parts[1]) {
+				if err := ValidateEpicSlug(parts[0]); err != nil {
+					return "", err
+				}
+				return parts[0], nil
+			}
+		}
+	}
+
+	return DefaultEpicSlug, nil
+}
+
+func v2MoveDestName(task Task, destDir string) string {
+	switch destDir {
+	case StatusClarify:
+		return task.BaseName()
+	case StatusReady, StatusInProgress:
+		if hasOrderPrefix(task.Filename) {
+			return task.Filename
+		}
+		return priorityPrefix(task.Priority) + task.BaseName()
+	case StatusDone:
+		if hasOrderPrefix(task.Filename) {
+			return task.Filename
+		}
+		return task.BaseName()
+	default:
+		return task.Filename
+	}
+}
+
+func legacyMoveDestName(task Task, destDir string) string {
+	if legacyPrefixedDirs[destDir] {
+		return priorityPrefix(task.Priority) + task.BaseName()
+	}
+	return task.BaseName()
+}
+
+func priorityPrefix(priority string) string {
+	prefix, ok := PriorityPrefix[priority]
+	if !ok {
+		return PriorityPrefix["low"]
+	}
+	return prefix
 }
 
 func listTasksInDir(dirPath, epic, status string) ([]Task, error) {

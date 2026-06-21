@@ -8,20 +8,26 @@ import (
 	"github.com/adrg/frontmatter"
 )
 
-// PriorityPrefix maps a priority name to its filename prefix.
+// PriorityPrefix maps a priority name to its default four-digit ordering
+// prefix. The ranges match the documented frontloop ordering convention.
 var PriorityPrefix = map[string]string{
-	"critical": "1-",
-	"high":     "2-",
-	"medium":   "3-",
-	"low":      "4-",
+	"critical": "0001-",
+	"high":     "2500-",
+	"medium":   "5000-",
+	"low":      "7500-",
 }
 
-// PrefixPriority maps a filename prefix to its priority name.
+// PrefixPriority maps known default ordering prefixes to their priority names.
+// Short legacy prefixes are kept for backwards-compatible parsing/stripping.
 var PrefixPriority = map[string]string{
-	"1-": "critical",
-	"2-": "high",
-	"3-": "medium",
-	"4-": "low",
+	"0001-": "critical",
+	"2500-": "high",
+	"5000-": "medium",
+	"7500-": "low",
+	"1-":    "critical",
+	"2-":    "high",
+	"3-":    "medium",
+	"4-":    "low",
 }
 
 // Task represents a frontloop task file.
@@ -69,13 +75,27 @@ func ParseFile(path string) (Task, error) {
 	}, nil
 }
 
-// BaseName returns the filename with any priority prefix (1-, 2-, 3-, 4-) stripped.
+// BaseName returns the filename with any numeric ordering prefix stripped.
 func (t Task) BaseName() string {
-	name := t.Filename
-	for prefix := range PrefixPriority {
-		if strings.HasPrefix(name, prefix) {
-			return name[len(prefix):]
+	base, _ := stripOrderPrefix(t.Filename)
+	return base
+}
+
+func hasOrderPrefix(name string) bool {
+	_, ok := stripOrderPrefix(name)
+	return ok
+}
+
+func stripOrderPrefix(name string) (string, bool) {
+	dash := strings.Index(name, "-")
+	if dash <= 0 {
+		return name, false
+	}
+
+	for _, r := range name[:dash] {
+		if r < '0' || r > '9' {
+			return name, false
 		}
 	}
-	return name
+	return name[dash+1:], true
 }

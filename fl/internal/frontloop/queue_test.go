@@ -248,6 +248,103 @@ func TestMoveTask_ToClarify_StripsPrefix(t *testing.T) {
 	}
 }
 
+func TestMoveTask_V2ClarifyToReadyPreservesEpicAndAddsDefaultOrderPrefix(t *testing.T) {
+	dir := t.TempDir()
+	root := makeEpicFrontloop(t, dir, frontloop.DefaultEpicSlug, "checkout-redesign")
+	writeTask(t, root, filepath.Join("checkout-redesign", frontloop.StatusClarify), "render-review.md", taskB)
+
+	tasks, err := frontloop.ListEpicDir(root, "checkout-redesign", frontloop.StatusClarify)
+	if err != nil {
+		t.Fatalf("unexpected list error: %v", err)
+	}
+
+	if err := frontloop.MoveTask(root, tasks[0], frontloop.StatusReady); err != nil {
+		t.Fatalf("unexpected move error: %v", err)
+	}
+
+	expectedName := frontloop.PriorityPrefix["high"] + "render-review.md"
+	assertPathExists(t, filepath.Join(root, "checkout-redesign", frontloop.StatusReady, expectedName))
+	assertPathMissing(t, filepath.Join(root, frontloop.DefaultEpicSlug, frontloop.StatusReady, expectedName))
+	assertPathMissing(t, filepath.Join(root, "checkout-redesign", frontloop.StatusClarify, "render-review.md"))
+}
+
+func TestMoveTask_V2ReadyToInProgressPreservesEpicAndOrderPrefix(t *testing.T) {
+	dir := t.TempDir()
+	root := makeEpicFrontloop(t, dir, frontloop.DefaultEpicSlug, "checkout-redesign")
+	writeTask(t, root, filepath.Join("checkout-redesign", frontloop.StatusReady), "0020-render-review.md", taskB)
+
+	tasks, err := frontloop.ListEpicDir(root, "checkout-redesign", frontloop.StatusReady)
+	if err != nil {
+		t.Fatalf("unexpected list error: %v", err)
+	}
+
+	if err := frontloop.MoveTask(root, tasks[0], frontloop.StatusInProgress); err != nil {
+		t.Fatalf("unexpected move error: %v", err)
+	}
+
+	assertPathExists(t, filepath.Join(root, "checkout-redesign", frontloop.StatusInProgress, "0020-render-review.md"))
+	assertPathMissing(t, filepath.Join(root, frontloop.DefaultEpicSlug, frontloop.StatusInProgress, "0020-render-review.md"))
+	assertPathMissing(t, filepath.Join(root, "checkout-redesign", frontloop.StatusReady, "0020-render-review.md"))
+}
+
+func TestMoveTask_V2ReadyToDonePreservesEpicAndOrderPrefix(t *testing.T) {
+	dir := t.TempDir()
+	root := makeEpicFrontloop(t, dir, frontloop.DefaultEpicSlug, "checkout-redesign")
+	writeTask(t, root, filepath.Join("checkout-redesign", frontloop.StatusReady), "0020-render-review.md", taskB)
+
+	tasks, err := frontloop.ListEpicDir(root, "checkout-redesign", frontloop.StatusReady)
+	if err != nil {
+		t.Fatalf("unexpected list error: %v", err)
+	}
+
+	if err := frontloop.MoveTask(root, tasks[0], frontloop.StatusDone); err != nil {
+		t.Fatalf("unexpected move error: %v", err)
+	}
+
+	assertPathExists(t, filepath.Join(root, "checkout-redesign", frontloop.StatusDone, "0020-render-review.md"))
+	assertPathMissing(t, filepath.Join(root, frontloop.DefaultEpicSlug, frontloop.StatusDone, "0020-render-review.md"))
+	assertPathMissing(t, filepath.Join(root, "checkout-redesign", frontloop.StatusReady, "0020-render-review.md"))
+}
+
+func TestMoveTask_V2ReadyToClarifyPreservesEpicAndStripsOrderPrefix(t *testing.T) {
+	dir := t.TempDir()
+	root := makeEpicFrontloop(t, dir, frontloop.DefaultEpicSlug, "checkout-redesign")
+	writeTask(t, root, filepath.Join("checkout-redesign", frontloop.StatusReady), "0020-render-review.md", taskB)
+
+	tasks, err := frontloop.ListEpicDir(root, "checkout-redesign", frontloop.StatusReady)
+	if err != nil {
+		t.Fatalf("unexpected list error: %v", err)
+	}
+
+	if err := frontloop.MoveTask(root, tasks[0], frontloop.StatusClarify); err != nil {
+		t.Fatalf("unexpected move error: %v", err)
+	}
+
+	assertPathExists(t, filepath.Join(root, "checkout-redesign", frontloop.StatusClarify, "render-review.md"))
+	assertPathMissing(t, filepath.Join(root, frontloop.DefaultEpicSlug, frontloop.StatusClarify, "render-review.md"))
+	assertPathMissing(t, filepath.Join(root, "checkout-redesign", frontloop.StatusReady, "0020-render-review.md"))
+}
+
+func TestMoveTask_V2DuplicateFilenamesMoveByTaskPathAndEpic(t *testing.T) {
+	dir := t.TempDir()
+	root := makeEpicFrontloop(t, dir, frontloop.DefaultEpicSlug, "checkout-redesign")
+	writeTask(t, root, filepath.Join(frontloop.DefaultEpicSlug, frontloop.StatusReady), "0020-render-review.md", taskA)
+	writeTask(t, root, filepath.Join("checkout-redesign", frontloop.StatusReady), "0020-render-review.md", taskB)
+
+	tasks, err := frontloop.ListEpicDir(root, frontloop.DefaultEpicSlug, frontloop.StatusReady)
+	if err != nil {
+		t.Fatalf("unexpected list error: %v", err)
+	}
+
+	if err := frontloop.MoveTask(root, tasks[0], frontloop.StatusInProgress); err != nil {
+		t.Fatalf("unexpected move error: %v", err)
+	}
+
+	assertPathExists(t, filepath.Join(root, frontloop.DefaultEpicSlug, frontloop.StatusInProgress, "0020-render-review.md"))
+	assertPathExists(t, filepath.Join(root, "checkout-redesign", frontloop.StatusReady, "0020-render-review.md"))
+	assertPathMissing(t, filepath.Join(root, frontloop.DefaultEpicSlug, frontloop.StatusReady, "0020-render-review.md"))
+}
+
 func TestListEpics_ReturnsActiveEpicsSortedAndIgnoresReserved(t *testing.T) {
 	dir := t.TempDir()
 	root := makeEpicFrontloop(t, dir, "default", "checkout-redesign", "worker-runtime")
@@ -372,6 +469,20 @@ func TestListDir_V2AggregatesStatusAcrossActiveEpics(t *testing.T) {
 	}
 	if tasks[0].Epic != "checkout-redesign" || tasks[1].Epic != "default" {
 		t.Errorf("task epics = [%q, %q], want active epics in slug order", tasks[0].Epic, tasks[1].Epic)
+	}
+}
+
+func assertPathExists(t *testing.T, path string) {
+	t.Helper()
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("expected path %q to exist: %v", path, err)
+	}
+}
+
+func assertPathMissing(t *testing.T, path string) {
+	t.Helper()
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("expected path %q to be missing, stat err = %v", path, err)
 	}
 }
 
