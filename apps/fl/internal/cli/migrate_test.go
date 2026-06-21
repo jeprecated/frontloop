@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jeprecated/frontloop/fl/internal/frontloop"
+	"github.com/jeprecated/frontloop/apps/fl/internal/frontloop"
 )
 
 func TestMigrateEpicLayoutCmd_IsRegistered(t *testing.T) {

@@ -16,7 +16,7 @@
         packages.default = pkgs.buildGoModule {
           pname = "fl";
           inherit version;
-          src = ./fl;
+          src = ./apps/fl;
           vendorHash = "sha256-8BhEEo+fd12bZDcvGDR2Xs8LyFoBu8YNwGFxhnji5fo=";
           subPackages = [ "cmd/fl" ];
           ldflags = [ "-s" "-w" "-X main.version=${version}" ];

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jeprecated/frontloop/fl/internal/frontloop"
+	"github.com/jeprecated/frontloop/apps/fl/internal/frontloop"
 	"github.com/spf13/cobra"
 )
 

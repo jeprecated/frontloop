@@ -4,8 +4,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/jeprecated/frontloop/fl/internal/frontloop"
-	"github.com/jeprecated/frontloop/fl/internal/tui"
+	"github.com/jeprecated/frontloop/apps/fl/internal/frontloop"
+	"github.com/jeprecated/frontloop/apps/fl/internal/tui"
 )
 
 var moveCmd = &cobra.Command{

@@ -1,4 +1,4 @@
-module github.com/jeprecated/frontloop/fl
+module github.com/jeprecated/frontloop/apps/fl
 
 go 1.24.0
 

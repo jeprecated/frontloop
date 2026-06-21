@@ -10,7 +10,7 @@ permissions:
 
 defaults:
   run:
-    working-directory: fl
+    working-directory: apps/fl
 
 jobs:
   test:
@@ -45,6 +45,6 @@ jobs:
           distribution: goreleaser
           version: latest
           args: release --clean
-          workdir: fl
+          workdir: apps/fl
         env:
           GITHUB_TOKEN: ${{ secrets.SCOOP_TOKEN || secrets.GITHUB_TOKEN }}

@@ -29,7 +29,7 @@ Active task paths use:
 
 `default/` is the epic used when no explicit epic is provided. `_archive/` stores completed epics and is ignored by normal active-queue commands.
 
-## Two ways to use frontloop
+## Ways to use frontloop
 
 ### Claude Code plugin
 
@@ -51,7 +51,7 @@ Slash commands for managing tasks inside agent conversations:
 
 ### `fl` CLI
 
-A standalone Go binary for managing queues from the terminal. See [`fl/README.md`](fl/README.md) for full command reference.
+A standalone Go binary for managing queues from the terminal. The CLI app lives in `apps/fl/`; see [`apps/fl/README.md`](apps/fl/README.md) for full command reference.
 
 ```bash
 fl init                                      # create v2 .frontloop/ tree
@@ -64,6 +64,18 @@ fl stats --epic checkout-redesign           # one epic only
 fl epic archive checkout-redesign           # archive a completed epic
 fl move                                     # interactive TUI to move tasks
 ```
+
+### Pi extension
+
+A Pi extension app lives in `apps/pi-extension/`. It adds Pi-native `/fl-*` commands, frontloop tools for the agent, a compact queue status in the footer, and active-task context injection.
+
+```bash
+pi install ./apps/pi-extension
+# or test without installing
+pi -e ./apps/pi-extension
+```
+
+The Pi extension intentionally targets only the v2 epic-first layout and does not include legacy flat-queue migration support.
 
 ## Install
 
@@ -98,7 +110,7 @@ Or add to a flake:
 ### From source
 
 ```bash
-go install github.com/jeprecated/frontloop/fl/cmd/fl@latest
+go install github.com/jeprecated/frontloop/apps/fl/cmd/fl@latest
 ```
 
 ## Task format

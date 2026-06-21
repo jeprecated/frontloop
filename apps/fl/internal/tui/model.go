@@ -7,7 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/jeprecated/frontloop/fl/internal/frontloop"
+	"github.com/jeprecated/frontloop/apps/fl/internal/frontloop"
 )
 
 // State represents which UI state the model is in.

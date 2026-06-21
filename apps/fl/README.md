@@ -187,19 +187,19 @@ fl migrate epic-layout
 ### From source (requires Go 1.24+)
 
 ```bash
-go install github.com/jeprecated/frontloop/fl/cmd/fl@latest
+go install github.com/jeprecated/frontloop/apps/fl/cmd/fl@latest
 ```
 
 ### With Nix for development
 
 ```bash
-nix shell nixpkgs#go -c sh -lc 'cd fl && go test ./...'
+nix shell nixpkgs#go -c sh -lc 'cd apps/fl && go test ./...'
 nix build
 ```
 
 ## Development
 
-Dependencies are managed with [Go modules](https://go.dev/ref/mod). From the `fl/` directory:
+Dependencies are managed with [Go modules](https://go.dev/ref/mod). From the `apps/fl/` directory:
 
 ```bash
 go test ./...

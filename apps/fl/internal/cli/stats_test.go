@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jeprecated/frontloop/fl/internal/frontloop"
+	"github.com/jeprecated/frontloop/apps/fl/internal/frontloop"
 )
 
 func writeStatsTask(t *testing.T, root, status, filename, title, priority string) {
