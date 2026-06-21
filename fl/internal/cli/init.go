@@ -11,7 +11,7 @@ import (
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Create a .frontloop/ directory tree in the current directory",
+	Short: "Create a v2 .frontloop/ directory tree in the current directory",
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -19,13 +19,21 @@ var initCmd = &cobra.Command{
 		}
 
 		root := filepath.Join(cwd, ".frontloop")
-		for _, sub := range frontloop.Dirs {
-			if err := os.MkdirAll(filepath.Join(root, sub), 0755); err != nil {
-				return err
-			}
+		hasLegacyTasks, err := frontloop.HasLegacyTasks(root)
+		if err != nil {
+			return err
+		}
+		if hasLegacyTasks {
+			return fmt.Errorf("legacy .frontloop task files detected at %s; run `fl migrate epic-layout` to move them into the v2 default epic", root)
 		}
 
-		fmt.Fprintf(cmd.OutOrStdout(), "Created: %s\n", root)
+		if err := frontloop.EnsureV2Root(root); err != nil {
+			return err
+		}
+
+		fmt.Fprintf(cmd.OutOrStdout(), "Initialized v2 .frontloop task queue: %s\n", root)
+		fmt.Fprintf(cmd.OutOrStdout(), "  %s/        - default epic for unscoped tasks\n", frontloop.DefaultEpicSlug)
+		fmt.Fprintf(cmd.OutOrStdout(), "  %s/       - archived completed epics\n", frontloop.ArchiveDirName)
 		return nil
 	},
 }
