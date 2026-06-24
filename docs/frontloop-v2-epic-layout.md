@@ -49,10 +49,11 @@ Where:
 
 `default/` is the built-in epic bucket for tasks without an explicit epic.
 
-Commands that create tasks without an epic argument must write to:
+Commands that create tasks without an epic argument must use the `default` epic:
 
 ```text
-.frontloop/default/clarify/<task>.md
+.frontloop/default/ready/<NNNN-task>.md     # actionable now
+.frontloop/default/clarify/<task>.md        # needs human review
 ```
 
 `default` is a normal active epic for listing, task movement, and statistics. It exists so unscoped tasks do not need a separate legacy layout.
@@ -125,7 +126,7 @@ This task belongs to the `checkout-redesign` epic because it is under `.frontloo
 
 ## Status and movement rules
 
-Within each epic, task status is represented by movement between the four status directories:
+Within each epic, task status is represented by placement in and movement between the four status directories. Actionable tasks may be created directly in `ready/`; tasks with open questions should start in `clarify/`.
 
 ```text
 .frontloop/<epic>/clarify/<task>.md

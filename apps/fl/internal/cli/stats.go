@@ -13,7 +13,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const maxDoneShown = 5
+const (
+	maxDoneShown       = 5
+	statsEpicSeparator = "────────────────────────────────────────"
+)
 
 type epicStats struct {
 	Slug  string
@@ -77,9 +80,22 @@ func loadStatsEpics(root, epicFilter string) ([]epicStats, error) {
 
 	groups := make([]epicStats, 0, len(activeEpics))
 	for _, epic := range activeEpics {
-		groups = append(groups, epicStats{Slug: epic.Slug, Tasks: allByEpic[epic.Slug]})
+		tasks := allByEpic[epic.Slug]
+		if !epicHasTasks(tasks) {
+			continue
+		}
+		groups = append(groups, epicStats{Slug: epic.Slug, Tasks: tasks})
 	}
 	return groups, nil
+}
+
+func epicHasTasks(tasks map[string][]frontloop.Task) bool {
+	for _, status := range frontloop.Statuses {
+		if len(tasks[status]) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func hasActiveEpic(epics []frontloop.Epic, slug string) bool {
@@ -135,8 +151,14 @@ func renderStatsByEpic(w io.Writer, epics []epicStats, noColor bool) {
 		fmt.Fprintln(w)
 	}
 
+	if len(epics) == 0 {
+		fmt.Fprintln(w, dim.Render("No active frontloop tasks."))
+		return
+	}
+
 	for i, epic := range epics {
 		if i > 0 {
+			fmt.Fprintln(w, dim.Render(statsEpicSeparator))
 			fmt.Fprintln(w)
 		}
 		fmt.Fprintf(w, "%s\n\n", bold.Render(epicHeader(epic.Slug)))

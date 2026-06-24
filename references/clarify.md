@@ -1,6 +1,6 @@
 # Clarify Workflow
 
-New tasks arrive in `.frontloop/<epic>/clarify/`. This workflow reviews them with a human and either promotes them to that same epic's `ready/` queue or leaves them for further discussion.
+Tasks that need human review arrive in `.frontloop/<epic>/clarify/`. This workflow reviews them with a human and either promotes them to that same epic's `ready/` queue or leaves them for further discussion. Tasks that are already actionable may be created directly in `ready/` and skip this workflow.
 
 `default` is the built-in epic for unscoped tasks. Ignore `.frontloop/_archive/`; archived epics are historical and are not active clarify queues.
 

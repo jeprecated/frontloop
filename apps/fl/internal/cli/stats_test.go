@@ -77,20 +77,17 @@ func runStatsCommand(t *testing.T, dir string, args ...string) (string, error) {
 	return out.String(), err
 }
 
-func TestStatsCmd_ShowsEmptySectionsWhenQueueEmpty(t *testing.T) {
+func TestStatsCmd_HidesEmptyEpicsWhenQueueEmpty(t *testing.T) {
 	dir := makeCLIV2Frontloop(t)
 	output := runStats(t, dir)
 
-	if !strings.Contains(output, "EPIC: default (default)") {
-		t.Errorf("expected default epic header in output:\n%s", output)
+	if !strings.Contains(output, "No active frontloop tasks.") {
+		t.Errorf("expected no-active-tasks message in output:\n%s", output)
 	}
-	for _, section := range []string{"IN PROGRESS", "READY", "NEEDS CLARIFICATION", "DONE"} {
-		if !strings.Contains(output, section) {
-			t.Errorf("expected section %q in output:\n%s", section, output)
+	for _, unexpected := range []string{"EPIC: default (default)", "IN PROGRESS", "READY", "NEEDS CLARIFICATION", "DONE", "(empty)"} {
+		if strings.Contains(output, unexpected) {
+			t.Errorf("did not expect %q in empty stats output:\n%s", unexpected, output)
 		}
-	}
-	if count := strings.Count(output, "(empty)"); count < 4 {
-		t.Errorf("expected 4 '(empty)' markers, got %d in output:\n%s", count, output)
 	}
 }
 
@@ -243,13 +240,39 @@ func TestStatsCmd_GroupsOutputByActiveEpicInSlugOrder(t *testing.T) {
 	assertInOrder(t, output,
 		"EPIC: checkout-redesign",
 		"0100-render-review",
+		statsEpicSeparator,
 		"EPIC: default (default)",
 		"0200-default-task",
+		statsEpicSeparator,
 		"EPIC: worker-runtime",
 		"0100-heartbeat",
 	)
 	if count := strings.Count(output, "READY (1)"); count != 3 {
 		t.Errorf("expected each epic to have its own READY (1) count, got %d in:\n%s", count, output)
+	}
+	if count := strings.Count(output, statsEpicSeparator); count != 2 {
+		t.Errorf("expected separator between each epic, got %d in:\n%s", count, output)
+	}
+}
+
+func TestStatsCmd_HidesEmptyEpicsWhenShowingAllEpics(t *testing.T) {
+	dir := makeCLIV2Frontloop(t)
+	root := filepath.Join(dir, ".frontloop")
+	for _, slug := range []string{"checkout-redesign", "empty-epic"} {
+		if err := frontloop.EnsureEpic(root, slug); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeStatsTaskInEpic(t, dir, "checkout-redesign", "clarify", "0100-translate-copy.md", "Translate Copy", "high")
+
+	output := runStats(t, dir)
+	if !strings.Contains(output, "EPIC: checkout-redesign") || !strings.Contains(output, "0100-translate-copy") {
+		t.Errorf("expected non-empty epic in output:\n%s", output)
+	}
+	for _, unexpected := range []string{"EPIC: default (default)", "EPIC: empty-epic"} {
+		if strings.Contains(output, unexpected) {
+			t.Errorf("did not expect empty epic %q in output:\n%s", unexpected, output)
+		}
 	}
 }
 
@@ -276,6 +299,25 @@ func TestStatsCmd_EpicFilterShowsOnlySelectedEpic(t *testing.T) {
 		if strings.Contains(output, unexpected) {
 			t.Errorf("did not expect %q in filtered output:\n%s", unexpected, output)
 		}
+	}
+}
+
+func TestStatsCmd_EpicFilterShowsEmptySelectedEpic(t *testing.T) {
+	dir := makeCLIV2Frontloop(t)
+	root := filepath.Join(dir, ".frontloop")
+	if err := frontloop.EnsureEpic(root, "checkout-redesign"); err != nil {
+		t.Fatal(err)
+	}
+
+	output, err := runStatsCommand(t, dir, "stats", "--epic", "checkout-redesign")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(output, "EPIC: checkout-redesign") {
+		t.Errorf("expected selected empty epic header in output:\n%s", output)
+	}
+	if count := strings.Count(output, "(empty)"); count != 4 {
+		t.Errorf("expected selected empty epic to show all empty sections, got %d markers in:\n%s", count, output)
 	}
 }
 
@@ -343,13 +385,11 @@ func assertInOrder(t *testing.T, output string, terms ...string) {
 	t.Helper()
 	lastIdx := -1
 	for _, term := range terms {
-		idx := strings.Index(output, term)
+		start := lastIdx + 1
+		idx := strings.Index(output[start:], term)
 		if idx == -1 {
-			t.Fatalf("expected %q in output:\n%s", term, output)
-		}
-		if idx < lastIdx {
 			t.Fatalf("expected %q after previous term in output:\n%s", term, output)
 		}
-		lastIdx = idx
+		lastIdx = start + idx
 	}
 }

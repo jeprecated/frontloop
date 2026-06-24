@@ -45,6 +45,10 @@ func TestMigrateEpicLayoutCmd_MovesLegacyTasksPreservingContents(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, ".frontloop", frontloop.StatusReady, "0001-ready.md")); !errors.Is(err, os.ErrNotExist) {
 		t.Errorf("legacy ready task should be moved away, stat err = %v", err)
 	}
+	assertLegacyStatusDirsRemoved(t, filepath.Join(dir, ".frontloop"))
+	if !strings.Contains(output, "Removed 4 empty legacy status dir") {
+		t.Errorf("expected legacy directory cleanup in output, got: %q", output)
+	}
 	if _, err := os.Stat(filepath.Join(dir, ".frontloop", frontloop.ArchiveDirName)); err != nil {
 		t.Errorf("archive directory not created: %v", err)
 	}
@@ -91,6 +95,7 @@ func TestMigrateEpicLayoutCmd_EmptyLegacyQueueCreatesV2Layout(t *testing.T) {
 	if !frontloop.IsV2Root(filepath.Join(dir, ".frontloop")) {
 		t.Fatal("expected empty legacy queue to be initialized as v2")
 	}
+	assertLegacyStatusDirsRemoved(t, filepath.Join(dir, ".frontloop"))
 	if _, err := os.Stat(filepath.Join(dir, ".frontloop", frontloop.ArchiveDirName)); err != nil {
 		t.Errorf("archive directory not created: %v", err)
 	}
@@ -145,5 +150,14 @@ func assertFileContent(t *testing.T, path string, want []byte) {
 	}
 	if string(got) != string(want) {
 		t.Fatalf("%s content = %q, want %q", path, string(got), string(want))
+	}
+}
+
+func assertLegacyStatusDirsRemoved(t *testing.T, root string) {
+	t.Helper()
+	for _, status := range frontloop.Statuses {
+		if _, err := os.Stat(filepath.Join(root, status)); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("legacy %s dir should be removed, stat err = %v", status, err)
+		}
 	}
 }

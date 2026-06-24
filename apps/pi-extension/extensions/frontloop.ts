@@ -7,11 +7,13 @@ import { access, appendFile, mkdir, readdir, readFile, rename, stat, writeFile }
 import { basename, dirname, join, relative, resolve } from "node:path";
 
 const STATUSES = ["clarify", "ready", "in_progress", "done"] as const;
+const CREATE_STATUSES = ["ready", "clarify"] as const;
 const PRIORITIES = ["critical", "high", "medium", "low"] as const;
 const DEFAULT_EPIC = "default";
 const FRONTLOOP_DIR = ".frontloop";
 
 type Status = (typeof STATUSES)[number];
+type CreateStatus = (typeof CREATE_STATUSES)[number];
 type Priority = (typeof PRIORITIES)[number];
 
 const STATUS_LABELS: Record<Status, string> = {
@@ -19,6 +21,13 @@ const STATUS_LABELS: Record<Status, string> = {
 	ready: "READY",
 	clarify: "NEEDS CLARIFICATION",
 	done: "DONE",
+};
+
+const PRIORITY_ORDER_PREFIX: Record<Priority, string> = {
+	critical: "0001",
+	high: "2500",
+	medium: "5000",
+	low: "7500",
 };
 
 type TaskSummary = {
@@ -47,6 +56,7 @@ type QueueSnapshot = {
 
 type CreateTaskInput = {
 	epic?: string;
+	status?: CreateStatus;
 	title: string;
 	goal: string;
 	priority: Priority;
@@ -117,12 +127,34 @@ async function findFrontloopRoot(cwd: string): Promise<string | undefined> {
 	}
 }
 
+async function findLegacyFrontloopRoot(cwd: string): Promise<string | undefined> {
+	let current = resolve(cwd);
+	while (true) {
+		const candidate = join(current, FRONTLOOP_DIR);
+		if (await isLegacyRoot(candidate)) {
+			return candidate;
+		}
+
+		const parent = dirname(current);
+		if (parent === current) {
+			return undefined;
+		}
+		current = parent;
+	}
+}
+
 async function requireFrontloopRoot(cwd: string): Promise<string> {
 	const root = await findFrontloopRoot(cwd);
-	if (!root) {
-		throw new Error("No frontloop v2 queue found. Expected .frontloop/default/{clarify,ready,in_progress,done}; run `fl init` from the repository root first.");
+	if (root) {
+		return root;
 	}
-	return root;
+
+	const legacyRoot = await findLegacyFrontloopRoot(cwd);
+	if (legacyRoot) {
+		throw new Error(`Legacy flat frontloop queue detected at ${relative(cwd, legacyRoot) || "."}. Run \`fl migrate epic-layout\` from the repository root first.`);
+	}
+
+	throw new Error("No frontloop v2 queue found. Expected .frontloop/default/{clarify,ready,in_progress,done}; run `fl init` from the repository root first.");
 }
 
 async function isV2Root(root: string): Promise<boolean> {
@@ -133,6 +165,15 @@ async function isV2Root(root: string): Promise<boolean> {
 
 	for (const status of STATUSES) {
 		if (!(await isDirectory(join(defaultEpic, status)))) {
+			return false;
+		}
+	}
+	return true;
+}
+
+async function isLegacyRoot(root: string): Promise<boolean> {
+	for (const status of STATUSES) {
+		if (!(await isDirectory(join(root, status)))) {
 			return false;
 		}
 	}
@@ -317,14 +358,28 @@ async function createTask(cwd: string, input: CreateTaskInput): Promise<TaskSumm
 	return withFrontloopMutation(async () => {
 		const root = await requireFrontloopRoot(cwd);
 		const epic = await requireEpic(root, input.epic || DEFAULT_EPIC);
-		const dir = join(root, epic, "clarify");
-		const filename = await uniqueFilename(dir, `${slugify(input.title)}.md`);
+		const questionCount = input.questions?.filter(Boolean).length || 0;
+		const status = normalizeCreateStatus(input.status, questionCount > 0 ? "clarify" : "ready");
+		if (status === "ready" && questionCount > 0) {
+			throw new Error("Ready frontloop tasks cannot include open Questions. Create it in clarify or remove the questions.");
+		}
+
+		const dir = join(root, epic, status);
+		const baseName = `${slugify(input.title)}.md`;
+		const preferred = status === "ready" ? `${PRIORITY_ORDER_PREFIX[input.priority]}-${baseName}` : baseName;
+		const filename = await uniqueFilename(dir, preferred);
 		const path = join(dir, filename);
 		const content = formatNewTask(input);
 
 		await writeFile(path, content, { encoding: "utf8", flag: "wx" });
-		return readTask(path, epic, "clarify");
+		return readTask(path, epic, status);
 	});
+}
+
+function normalizeCreateStatus(value: string | undefined, defaultStatus: CreateStatus): CreateStatus {
+	if (!value) return defaultStatus;
+	if ((CREATE_STATUSES as readonly string[]).includes(value)) return value as CreateStatus;
+	throw new Error(`Unsupported task creation status: ${value}`);
 }
 
 function formatNewTask(input: CreateTaskInput): string {
@@ -619,57 +674,6 @@ export default function frontloopExtension(pi: ExtensionAPI) {
 		return { systemPrompt: `${event.systemPrompt}${context}` };
 	});
 
-	pi.registerCommand("fl-status", {
-		description: "Show the active frontloop queue grouped by epic",
-		handler: async (args, ctx) => {
-			try {
-				const root = await requireFrontloopRoot(ctx.cwd);
-				const epic = args.trim() || undefined;
-				const snapshot = await snapshotQueue(root, epic);
-				await showFrontloopMessage(pi, ctx, renderStatus(snapshot, ctx.cwd), { kind: "status", epic });
-			} catch (error) {
-				ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
-			}
-		},
-	});
-
-	pi.registerCommand("fl-add", {
-		description: "Create a frontloop task in an epic's clarify queue",
-		handler: async (args, ctx) => {
-			try {
-				if (!ctx.hasUI) throw new Error("/fl-add requires interactive UI.");
-				const root = await requireFrontloopRoot(ctx.cwd);
-				const epics = await listActiveEpics(root);
-				const selectedEpic = await ctx.ui.select("Target epic", epics);
-				if (!selectedEpic) return;
-
-				const title = (args.trim() || (await ctx.ui.input("Task title", "Short human-readable title")) || "").trim();
-				if (!title) return;
-				const priority = (await ctx.ui.select("Priority", [...PRIORITIES])) as Priority | undefined;
-				if (!priority) return;
-				const goal = (await ctx.ui.editor("Goal", "What should this task achieve?"))?.trim();
-				if (!goal) return;
-				const criteria = parseLines(await ctx.ui.editor("Acceptance criteria", "One criterion per line"));
-				if (criteria.length === 0) return;
-				const decisions = parseLines(await ctx.ui.editor("Design decisions (optional)", "One decision per line"));
-				const notes = (await ctx.ui.editor("Implementation notes (optional)", "Relevant files, constraints, hints"))?.trim();
-
-				const task = await createTask(ctx.cwd, {
-					epic: selectedEpic,
-					title,
-					priority,
-					goal,
-					acceptanceCriteria: criteria,
-					designDecisions: decisions,
-					implementationNotes: notes,
-				});
-				await showFrontloopMessage(pi, ctx, `Created ${relativeOrSelf(ctx.cwd, task.path)}`, { kind: "created", task });
-			} catch (error) {
-				ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
-			}
-		},
-	});
-
 	pi.registerCommand("fl-work", {
 		description: "Start the next ready frontloop task and send it to the agent",
 		handler: async (args, ctx) => {
@@ -713,6 +717,60 @@ export default function frontloopExtension(pi: ExtensionAPI) {
 		},
 	});
 
+	pi.registerCommand("fl-status", {
+		description: "Show the active frontloop queue grouped by epic",
+		handler: async (args, ctx) => {
+			try {
+				const root = await requireFrontloopRoot(ctx.cwd);
+				const epic = args.trim() || undefined;
+				const snapshot = await snapshotQueue(root, epic);
+				await showFrontloopMessage(pi, ctx, renderStatus(snapshot, ctx.cwd), { kind: "status", epic });
+			} catch (error) {
+				ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+			}
+		},
+	});
+
+	pi.registerCommand("fl-add", {
+		description: "Create a frontloop task in ready or clarify",
+		handler: async (args, ctx) => {
+			try {
+				if (!ctx.hasUI) throw new Error("/fl-add requires interactive UI.");
+				const root = await requireFrontloopRoot(ctx.cwd);
+				const epics = await listActiveEpics(root);
+				const selectedEpic = await ctx.ui.select("Target epic", epics);
+				if (!selectedEpic) return;
+
+				const title = (args.trim() || (await ctx.ui.input("Task title", "Short human-readable title")) || "").trim();
+				if (!title) return;
+				const priority = (await ctx.ui.select("Priority", [...PRIORITIES])) as Priority | undefined;
+				if (!priority) return;
+				const goal = (await ctx.ui.editor("Goal", "What should this task achieve?"))?.trim();
+				if (!goal) return;
+				const criteria = parseLines(await ctx.ui.editor("Acceptance criteria", "One criterion per line"));
+				if (criteria.length === 0) return;
+				const decisions = parseLines(await ctx.ui.editor("Design decisions (optional)", "One decision per line"));
+				const notes = (await ctx.ui.editor("Implementation notes (optional)", "Relevant files, constraints, hints"))?.trim();
+				const status = (await ctx.ui.select("Initial status", [...CREATE_STATUSES])) as CreateStatus | undefined;
+				if (!status) return;
+
+				const task = await createTask(ctx.cwd, {
+					epic: selectedEpic,
+					status,
+					title,
+					priority,
+					goal,
+					acceptanceCriteria: criteria,
+					designDecisions: decisions,
+					implementationNotes: notes,
+				});
+				await showFrontloopMessage(pi, ctx, `Created ${relativeOrSelf(ctx.cwd, task.path)}`, { kind: "created", task });
+			} catch (error) {
+				ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+			}
+		},
+	});
+
 	pi.registerCommand("fl-complete", {
 		description: "Complete the active frontloop task and move it to done",
 		handler: async (args, ctx) => {
@@ -745,6 +803,7 @@ export default function frontloopExtension(pi: ExtensionAPI) {
 	});
 
 	const PrioritySchema = StringEnum(PRIORITIES);
+	const CreateStatusSchema = StringEnum(CREATE_STATUSES);
 
 	pi.registerTool({
 		name: "frontloop_status",
@@ -770,21 +829,23 @@ export default function frontloopExtension(pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "frontloop_create_task",
 		label: "Frontloop Create Task",
-		description: "Create a frontloop task in .frontloop/<epic>/clarify/. New tasks always start in clarify.",
-		promptSnippet: "Create a frontloop task in an epic's clarify queue",
+		description: "Create a frontloop task in .frontloop/<epic>/ready/ when actionable, or clarify/ when open questions remain.",
+		promptSnippet: "Create a frontloop task in an epic's ready or clarify queue",
 		promptGuidelines: [
 			"Use frontloop_create_task when the user asks to capture work as a frontloop task.",
-			"frontloop_create_task must only create tasks in clarify; do not create ready/in_progress/done task files directly.",
+			"Create directly in ready when the task is actionable and has no open questions, especially when the user wants to work on it next.",
+			"Use clarify only when human decisions or missing details remain; ready tasks must not include a Questions section.",
 		],
 		parameters: Type.Object({
 			epic: Type.Optional(Type.String({ description: "Active epic slug; defaults to default" })),
+			status: Type.Optional(CreateStatusSchema),
 			title: Type.String({ description: "Short human-readable task title" }),
 			goal: Type.String({ description: "What the task achieves, in 1-3 sentences" }),
 			priority: PrioritySchema,
 			acceptanceCriteria: Type.Array(Type.String(), { description: "Concrete checklist items" }),
 			designDecisions: Type.Optional(Type.Array(Type.String(), { description: "Pre-approved design choices" })),
 			implementationNotes: Type.Optional(Type.String({ description: "Optional hints, constraints, or relevant files" })),
-			questions: Type.Optional(Type.Array(Type.String(), { description: "Optional clarify questions as markdown, ideally with options and recommendation" })),
+			questions: Type.Optional(Type.Array(Type.String(), { description: "Optional clarify questions as markdown, ideally with options and recommendation. Supplying questions defaults the task to clarify." })),
 		}),
 		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 			const task = await createTask(ctx.cwd, params as CreateTaskInput);

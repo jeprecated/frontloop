@@ -29,7 +29,7 @@ pi -e ./apps/pi-extension
 | Command | Purpose |
 |---------|---------|
 | `/fl-status [epic]` | Show active queue state grouped by epic |
-| `/fl-add` | Create a task in an epic's `clarify/` queue through a small UI wizard |
+| `/fl-add` | Create a task in an epic's `ready/` or `clarify/` queue through a small UI wizard |
 | `/fl-work [epic]` | Move the next ready task to `in_progress/` and send its context to the agent |
 | `/fl-complete [epic]` | Append a completion summary and move the active task to `done/` |
 | `/fl-block [epic]` | Append a blocker reason and return the active task to `clarify/` |
@@ -39,9 +39,9 @@ pi -e ./apps/pi-extension
 | Tool | Purpose |
 |------|---------|
 | `frontloop_status` | Inspect active queue state |
-| `frontloop_create_task` | Create a new task in `clarify/` |
+| `frontloop_create_task` | Create a new task in `ready/` when actionable, or `clarify/` when questions remain |
 | `frontloop_start_task` | Move the next ready task to `in_progress/` |
 | `frontloop_complete_task` | Complete the active task and move it to `done/` |
 | `frontloop_block_task` | Mark the active task blocked and return it to `clarify/` |
 
-The extension also shows a compact footer status when a v2 queue is present and injects active in-progress task context into agent turns.
+`frontloop_create_task` defaults to `ready` when no clarify questions are supplied, and to `clarify` when questions are supplied. The extension also shows a compact footer status when a v2 queue is present and injects active in-progress task context into agent turns.

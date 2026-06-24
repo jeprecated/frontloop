@@ -1,11 +1,11 @@
 ---
-description: Gather feature ideas from the user and add them to an epic's clarify queue
+description: Gather feature ideas from the user and add them to an epic's ready or clarify queue
 argument-hint: [optional epic or brainstorming topic]
 ---
 
 # Frontloop Gather
 
-Interactively collect feature ideas from the user and create task files in `.frontloop/<epic>/clarify/` for each one. If no epic is specified, use `default`.
+Interactively collect feature ideas from the user and create task files in `.frontloop/<epic>/ready/` for actionable work or `.frontloop/<epic>/clarify/` when questions remain. If no epic is specified, use `default`.
 
 ## Precondition
 
@@ -32,8 +32,8 @@ Tell the user you're ready to collect feature ideas. If arguments were provided,
 Explain:
 
 - They can describe ideas in any level of detail — a single sentence is fine
-- You'll create a task for each one with your own questions and unknowns filled in
-- New tasks will be written to `.frontloop/<epic>/clarify/`
+- You'll create a task for each one, adding clarify questions only when implementation details are still missing
+- Actionable tasks with no open questions can go straight to `.frontloop/<epic>/ready/`; tasks needing answers go to `.frontloop/<epic>/clarify/`
 - Say "done" or "that's all" when finished
 
 ### 2. Collect ideas
@@ -48,7 +48,7 @@ Keep collecting until the user signals they're done.
 
 ### 3. Create tasks
 
-For each idea collected, create a task file in `.frontloop/<epic>/clarify/`. Derive the filename from your chosen title using kebab-case. Ensure uniqueness within that epic's `clarify/` directory.
+For each idea collected, decide whether it is ready to work or needs clarification. Create ready tasks in `.frontloop/<epic>/ready/` with a 4-digit ordering prefix; create tasks with open questions in `.frontloop/<epic>/clarify/` without a prefix. Derive the base filename from your chosen title using kebab-case and ensure uniqueness within the target directory.
 
 For each task, **you** fill in:
 
@@ -56,7 +56,7 @@ For each task, **you** fill in:
 - **Goal** — what the feature achieves, based on what the user said (1-3 sentences)
 - **Priority** — your best guess: critical, high, medium, or low
 - **Acceptance Criteria** — concrete checklist items you infer from the idea
-- **Questions** — things you'd need answered before implementation. Format as lettered options with a recommendation, so they're ready for `/clarify`:
+- **Questions** — only for tasks that need clarification before implementation. Format as lettered options with a recommendation, so they're ready for `/clarify`:
 
 ```markdown
 ### Q1: <question>
@@ -66,7 +66,7 @@ For each task, **you** fill in:
 - **Recommendation**: <your pick and why>
 ```
 
-Write to `.frontloop/<epic>/clarify/<filename>.md`:
+If the task has open questions, write to `.frontloop/<epic>/clarify/<filename>.md`:
 
 ```markdown
 ---
@@ -94,7 +94,7 @@ priority: <priority>
 ### Q2: ...
 ```
 
-Do **not** ask the user these questions during gather. The questions are for the `/clarify` step.
+Do **not** ask the user these questions during gather. The questions are for the `/clarify` step. If there are no open questions, omit the Questions section and write the task directly to `.frontloop/<epic>/ready/<NNNN-filename>.md`.
 
 Epic membership is represented by the path; do not add an `epic:` field to task frontmatter.
 

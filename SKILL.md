@@ -1,26 +1,26 @@
 ---
 name: frontloop
-description: File-based task queue for agent loops. Defines the v2 epic-first .frontloop/ directory structure, task markdown format, and lifecycle. Tasks are markdown files with YAML frontmatter that move between per-epic status directories (clarify → ready → in_progress → done). Use when the user mentions frontloop, task queues, or agent task pipelines. See references/clarify.md for the human-review workflow and references/worker.md for the execution workflow.
+description: File-based task queue for agent loops. Defines the v2 epic-first .frontloop/ directory structure, task markdown format, and lifecycle. Tasks are markdown files with YAML frontmatter that move between per-epic status directories (clarify when review is needed, ready, in_progress, done). Use when the user mentions frontloop, task queues, or agent task pipelines. See references/clarify.md for the human-review workflow and references/worker.md for the execution workflow.
 ---
 
 # Frontloop
 
 Markdown task files move between status directories inside an epic. The directory is the status; the top-level epic directory is the bucket that keeps related ordered tasks together.
 
-**IMPORTANT: New tasks ALWAYS go in `.frontloop/<epic>/clarify/`. Never create tasks directly in `ready/`, `in_progress/`, or `done/`.** If no epic is specified, use the built-in `default` epic. Only the `/clarify` workflow promotes tasks from `clarify/` to `ready/` after human review.
+**Task creation rule:** Put new tasks directly in `.frontloop/<epic>/ready/` when the goal, acceptance criteria, and relevant decisions are clear enough for an agent to execute without more human input. Use `.frontloop/<epic>/clarify/` only when there are open questions, missing decisions, or an explicit need for human review. Never create new tasks directly in `in_progress/` or `done/`. If no epic is specified, use the built-in `default` epic.
 
 ```text
 .frontloop/
 ├── default/                 # built-in bucket for unscoped tasks
 │   ├── epic.md
-│   ├── clarify/             # ALL new default tasks start here
-│   ├── ready/               # reviewed and ready
+│   ├── clarify/             # default tasks needing human review
+│   ├── ready/               # actionable default tasks ready to work
 │   ├── in_progress/         # task currently being worked on
 │   └── done/                # completed tasks with summaries
 ├── <epic>/                  # e.g. checkout-redesign
 │   ├── epic.md
-│   ├── clarify/             # ALL new tasks for this epic start here
-│   ├── ready/
+│   ├── clarify/             # tasks needing human review
+│   ├── ready/               # actionable tasks ready to work
 │   ├── in_progress/
 │   └── done/
 └── _archive/                # completed epics; ignored by active workflows
@@ -45,7 +45,12 @@ Within each epic:
 
 ## Creating Tasks
 
-When creating frontloop tasks — whether via `/add`, `/gather`, `fl idea`, or manually — **always write them to `.frontloop/<epic>/clarify/`**. If the user does not specify an epic, use `.frontloop/default/clarify/`. Tasks must be reviewed by a human (`/clarify`) before they can move to `ready/`. There are no exceptions.
+When creating frontloop tasks — whether via `/add`, `/gather`, a Pi tool, or manually — choose the initial status intentionally:
+
+- **Create in `.frontloop/<epic>/ready/`** when the task is actionable now: the goal and acceptance criteria are clear, there are no open Questions, and any important choices are already captured as Design Decisions or Implementation Notes. This is the right choice when the user says they want to work on the task immediately. Use a 4-digit ordering prefix in the filename, e.g. `2500-task-name.md`.
+- **Create in `.frontloop/<epic>/clarify/`** when the task needs human answers, prioritisation, or more detail before a worker can execute it. Include a **Questions** section only for clarify tasks.
+
+If the user does not specify an epic, use `.frontloop/default/ready/` for ready work or `.frontloop/default/clarify/` for tasks needing review.
 
 Epic membership comes from the path. Do not add or rely on an `epic:` field in task frontmatter.
 
@@ -123,5 +128,5 @@ After migration, legacy tasks live under `.frontloop/default/<status>/`.
 | `/status` | Show active queue state grouped by epic |
 | `/clarify` | Review tasks in one or more epic `clarify/` queues with a human |
 | `/work` | Pick up and execute the next ready task, optionally within a specific epic |
-| `/add` | Create a new task in `.frontloop/<epic>/clarify/` |
-| `/gather` | Collect feature ideas from user, batch-create tasks in `.frontloop/<epic>/clarify/` |
+| `/add` | Create a new task in `ready/` or `clarify/` depending on whether more review is needed |
+| `/gather` | Collect feature ideas from user, batch-create ready tasks or clarify tasks with questions |

@@ -1,6 +1,6 @@
 # frontloop
 
-File-based task queue for AI agent loops. Tasks are Markdown files with YAML frontmatter that move through status directories inside an epic: `clarify` → `ready` → `in_progress` → `done`.
+File-based task queue for AI agent loops. Tasks are Markdown files with YAML frontmatter that move through status directories inside an epic: `clarify` when review is needed, then `ready` → `in_progress` → `done`.
 
 The active v2 layout is epic-first:
 
@@ -8,8 +8,8 @@ The active v2 layout is epic-first:
 .frontloop/
 ├── default/                 # built-in bucket for unscoped tasks
 │   ├── epic.md
-│   ├── clarify/             # new tasks always start here
-│   ├── ready/               # reviewed and prioritised
+│   ├── clarify/             # tasks needing human review
+│   ├── ready/               # actionable tasks ready to work
 │   ├── in_progress/         # currently being worked on
 │   └── done/                # completed tasks
 ├── checkout-redesign/       # another active epic
@@ -29,6 +29,8 @@ Active task paths use:
 
 `default/` is the epic used when no explicit epic is provided. `_archive/` stores completed epics and is ignored by normal active-queue commands.
 
+New tasks may start directly in `ready/` when they are actionable and have no open questions. Use `clarify/` only when human decisions or missing details remain.
+
 ## Ways to use frontloop
 
 ### Claude Code plugin
@@ -46,8 +48,8 @@ Slash commands for managing tasks inside agent conversations:
 | `/status` | Show active queue state grouped by epic |
 | `/clarify` | Review tasks in an epic's `clarify/` queue with a human |
 | `/work` | Pick up and execute the next ready task, optionally within one epic |
-| `/add` | Create a new task in `.frontloop/<epic>/clarify/` |
-| `/gather` | Collect feature ideas and batch-create clarify tasks |
+| `/add` | Create a new task in `ready/` or `clarify/` depending on whether review is needed |
+| `/gather` | Collect feature ideas and batch-create ready or clarify tasks |
 
 ### `fl` CLI
 
@@ -58,8 +60,8 @@ fl init                                      # create v2 .frontloop/ tree
 fl migrate epic-layout                      # migrate old flat queues into default/
 fl epic new checkout-redesign               # create an active epic
 fl idea --epic checkout-redesign "render review page"
-fl idea "small unscoped task"               # goes to default/clarify/
-fl stats                                    # grouped by active epic
+fl idea "small unscoped task"               # quick ideas go to default/clarify/
+fl stats                                    # grouped by non-empty active epic
 fl stats --epic checkout-redesign           # one epic only
 fl epic archive checkout-redesign           # archive a completed epic
 fl move                                     # interactive TUI to move tasks

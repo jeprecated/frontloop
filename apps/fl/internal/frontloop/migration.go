@@ -11,7 +11,8 @@ import (
 
 // MigrationResult summarizes a legacy-to-v2 layout migration.
 type MigrationResult struct {
-	TasksMoved int
+	TasksMoved        int
+	LegacyDirsRemoved int
 }
 
 // MigrationConflict identifies a legacy task that cannot be moved because the
@@ -140,7 +141,38 @@ func MigrateLegacyToEpicLayout(root string) (MigrationResult, error) {
 		}
 		result.TasksMoved++
 	}
+
+	removed, err := removeEmptyLegacyStatusDirs(root)
+	if err != nil {
+		return result, err
+	}
+	result.LegacyDirsRemoved = removed
 	return result, nil
+}
+
+func removeEmptyLegacyStatusDirs(root string) (int, error) {
+	removed := 0
+	for _, status := range Statuses {
+		dirPath := filepath.Join(root, status)
+		entries, err := os.ReadDir(dirPath)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return removed, err
+		}
+		if len(entries) > 0 {
+			continue
+		}
+		if err := os.Remove(dirPath); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			return removed, err
+		}
+		removed++
+	}
+	return removed, nil
 }
 
 type legacyTaskFile struct {

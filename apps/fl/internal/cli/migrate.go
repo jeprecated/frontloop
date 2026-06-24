@@ -43,9 +43,11 @@ func runMigrateEpicLayoutCmd(cmd *cobra.Command, _ []string) error {
 
 	if result.TasksMoved == 0 {
 		fmt.Fprintf(cmd.OutOrStdout(), "No legacy tasks to migrate; v2 layout is ready at %s\n", root)
-		return nil
+	} else {
+		fmt.Fprintf(cmd.OutOrStdout(), "Migrated %d legacy task(s) into %s/%s/\n", result.TasksMoved, root, frontloop.DefaultEpicSlug)
 	}
-
-	fmt.Fprintf(cmd.OutOrStdout(), "Migrated %d legacy task(s) into %s/%s/\n", result.TasksMoved, root, frontloop.DefaultEpicSlug)
+	if result.LegacyDirsRemoved > 0 {
+		fmt.Fprintf(cmd.OutOrStdout(), "Removed %d empty legacy status dir(s).\n", result.LegacyDirsRemoved)
+	}
 	return nil
 }

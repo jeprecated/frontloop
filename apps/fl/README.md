@@ -25,7 +25,7 @@ Command-line tool for managing a [frontloop](https://github.com/jeprecated/front
 
 Active task paths are `.frontloop/<epic>/<status>/<task>.md`. `default/` receives tasks when no epic is specified. `_archive/` contains completed epics and is ignored by normal active-queue commands.
 
-Within an epic, task status is still represented by directory movement: `clarify` → `ready` → `in_progress` → `done`.
+Within an epic, task status is still represented by directory movement: `clarify` → `ready` → `in_progress` → `done`. Tasks that are already actionable can be created directly in `ready/`; `clarify/` is for ideas or tasks with open questions.
 
 ## Commands
 
@@ -61,7 +61,7 @@ Migrates:
 .frontloop/<status>/<task>.md → .frontloop/default/<status>/<task>.md
 ```
 
-The command preserves filenames and file contents, creates `default/epic.md`, creates `_archive/`, and refuses destination conflicts.
+The command preserves filenames and file contents, creates `default/epic.md`, creates `_archive/`, removes empty legacy top-level status directories, and refuses destination conflicts. Non-empty legacy status directories are left in place to avoid deleting unrelated files.
 
 ### `fl epic new`
 
@@ -122,7 +122,7 @@ fl stats --no-color   # pipe-safe, no ANSI codes
 fl stats --no-color | grep READY
 ```
 
-Displays counts and task names for each active epic's IN PROGRESS, READY, NEEDS CLARIFICATION, and DONE queues. Done lists are capped at 5 most-recent tasks per epic. `_archive/` is ignored.
+Displays counts and task names for each non-empty active epic's IN PROGRESS, READY, NEEDS CLARIFICATION, and DONE queues, with divider lines between epics. If no active epic has tasks, `fl stats` prints a concise no-active-tasks message. `--epic` still shows the selected epic even when its queues are empty. Done lists are capped at 5 most-recent tasks per epic. `_archive/` is ignored.
 
 ### `fl move`
 
